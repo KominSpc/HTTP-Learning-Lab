@@ -1,0 +1,3368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>标签练习</title>
+  <style>
+    :root {
+      --bg: #1a1d23;
+      --panel-bg: #21252b;
+      --border: #3a3f4b;
+      --text: #e1e4e8;
+      --text-secondary: #959da5;
+      --accent: #61afef;
+      --accent2: #c678dd;
+      --container-color: #4a90d9;
+      --container-bg: rgba(74, 144, 217, 0.12);
+      --container-border: #4a90d9;
+      --double-color: #56b6c2;
+      --double-bg: rgba(86, 182, 194, 0.1);
+      --double-border: #56b6c2;
+      --single-color: #e5c07b;
+      --single-bg: rgba(229, 192, 123, 0.1);
+      --single-border: #e5c07b;
+      --error-color: #e06c75;
+      --error-bg: rgba(224, 108, 117, 0.15);
+      --error-border: #e06c75;
+      --drop-zone-bg: rgba(97, 175, 239, 0.08);
+      --help-btn-glow: #f0a500;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* 左侧面板 */
+    .sidebar {
+      width: 300px;
+      min-width: 300px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 12px 4px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      transition: 0.2s;
+      border-bottom: 2px solid transparent;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .sidebar-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(97, 175, 239, 0.08);
+    }
+
+    .sidebar-panels {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tab-panel {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    .sidebar-header {
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header h2 {
+      font-size: 1.2em;
+      color: var(--accent);
+    }
+
+    .tag-library-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tag-category {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      padding: 12px 10px;
+    }
+
+    .tag-category-title {
+      font-size: 0.7em;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .cat-dot.container {
+      background: var(--container-color);
+    }
+
+    .cat-dot.double {
+      background: var(--double-color);
+    }
+
+    .cat-dot.single {
+      background: var(--single-color);
+    }
+
+    .cat-dot.error {
+      background: var(--error-color);
+      animation: error-pulse 1.5s infinite;
+    }
+
+    @keyframes error-pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 6px var(--error-color);
+      }
+
+      50% {
+        box-shadow: 0 0 16px var(--error-color);
+      }
+    }
+
+    .tag-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .draggable-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 13px;
+      border-radius: 20px;
+      font-size: 0.82em;
+      font-weight: 600;
+      cursor: grab;
+      border: 2px solid transparent;
+      font-family: monospace;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+
+    .draggable-tag:active {
+      cursor: grabbing;
+      transform: scale(0.94);
+    }
+
+    .draggable-tag.tag-container {
+      background: var(--container-bg);
+      border-color: var(--container-border);
+      color: #6db9f7;
+    }
+
+    .draggable-tag.tag-double {
+      background: var(--double-bg);
+      border-color: var(--double-border);
+      color: #6cd5e0;
+    }
+
+    .draggable-tag.tag-single {
+      background: var(--single-bg);
+      border-color: var(--single-border);
+      color: #e8c97a;
+      border-style: dashed;
+    }
+
+    .draggable-tag.tag-error {
+      background: var(--error-bg);
+      border-color: var(--error-border);
+      color: #f0888e;
+      border-style: dotted;
+    }
+
+    .preset-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .preset-card:hover {
+      border-color: var(--accent2);
+      background: rgba(198, 120, 221, 0.08);
+    }
+
+    .preset-card h4 {
+      font-size: 0.85em;
+      color: var(--accent2);
+      margin-bottom: 4px;
+    }
+
+    .preset-card p {
+      font-size: 0.7em;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .preset-preview {
+      font-family: monospace;
+      font-size: 0.65em;
+      color: #abb2bf;
+      background: #2a2d34;
+      padding: 6px 8px;
+      border-radius: 6px;
+      margin-top: 6px;
+      white-space: pre-wrap;
+      max-height: 80px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .style-section {
+      margin-bottom: 16px;
+    }
+
+    .style-section h4 {
+      font-size: 0.8em;
+      color: var(--accent2);
+      margin-bottom: 6px;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 4px;
+    }
+
+    .style-btn-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .style-btn {
+      padding: 5px 10px;
+      font-size: 0.7em;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: monospace;
+      transition: 0.2s;
+    }
+
+    .style-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--accent2);
+    }
+
+    .color-swatch {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-right: 4px;
+      border: 1px solid #888;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .input-group input,
+    .input-group select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #2a2d34;
+      color: #fff;
+      font-size: 0.75em;
+    }
+
+    .color-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+    }
+
+    .color-picker-row label {
+      font-size: 0.7em;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .color-picker-row input[type="color"] {
+      width: 36px;
+      height: 28px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      background: transparent;
+      padding: 1px;
+    }
+
+    .color-picker-row input[type="color"]:hover {
+      border-color: var(--accent2);
+    }
+
+    .color-picker-row .current-color-display {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid #888;
+      vertical-align: middle;
+    }
+
+    .build-area-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #1e2128;
+    }
+
+    .build-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .build-header h3 {
+      white-space: nowrap;
+    }
+
+    .build-header .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .build-canvas {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+    }
+
+    .drop-zone-root {
+      min-height: 350px;
+      border: 2px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 16px;
+      transition: 0.2s;
+    }
+
+    .drop-zone-root.drag-over {
+      border-color: var(--accent);
+      background: var(--drop-zone-bg);
+    }
+
+    .placeholder-text {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 60px 20px;
+    }
+
+    .build-tag-block {
+      position: relative;
+      margin: 8px 0;
+      border-radius: 10px;
+      transition: 0.2s;
+      outline: none;
+    }
+
+    .build-tag-block.selected {
+      box-shadow: 0 0 0 2px var(--accent2);
+    }
+
+    .drop-highlight-above::before {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: 8px;
+      right: 8px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px;
+      z-index: 30;
+      animation: highlight-bar 0.6s ease-in-out infinite;
+    }
+
+    .drop-highlight-below::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 8px;
+      right: 8px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px;
+      z-index: 30;
+      animation: highlight-bar 0.6s ease-in-out infinite;
+    }
+
+    @keyframes highlight-bar {
+
+      0%,
+      100% {
+        opacity: 0.7;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .tag-open,
+    .tag-close,
+    .tag-body {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 0.85em;
+      font-weight: 600;
+      border: 2px solid transparent;
+      transition: 0.2s;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tag-open.type-container,
+    .tag-close.type-container {
+      background: var(--container-bg);
+      border-color: var(--container-border);
+      color: #8ec8f7;
+    }
+
+    .tag-body.type-double {
+      background: var(--double-bg);
+      border-color: var(--double-border);
+      color: #7de0eb;
+    }
+
+    .tag-body.type-single {
+      background: var(--single-bg);
+      border-color: var(--single-border);
+      color: #edcf85;
+      border-style: dashed;
+    }
+
+    .tag-body.type-error {
+      background: var(--error-bg);
+      border-color: var(--error-border);
+      color: #f49ca2;
+      border-style: dotted;
+    }
+
+    .tag-content {
+      display: inline-block;
+      min-width: 30px;
+      padding: 2px 8px;
+      border-bottom: 2px dashed #888;
+      color: #f0f0f0;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      cursor: text;
+      font-family: inherit;
+      font-size: 0.9em;
+      outline: none;
+    }
+
+    .tag-content:empty::before {
+      content: '点击输入内容';
+      color: #777;
+    }
+
+    .style-tag-wrapper {
+      display: block;
+      margin: 4px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #e5c07b;
+      background: #1e1e2e;
+    }
+
+    .style-tag-header {
+      background: #2a2a3a;
+      padding: 6px 12px;
+      font-size: 0.8em;
+      color: #e5c07b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: monospace;
+    }
+
+    .style-tag-header .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .style-tag-header .dot.red {
+      background: #e06c75;
+    }
+
+    .style-tag-header .dot.yellow {
+      background: #e5c07b;
+    }
+
+    .style-tag-header .dot.green {
+      background: #98c379;
+    }
+
+    .style-code-area {
+      padding: 10px 14px;
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.82em;
+      line-height: 1.7;
+      color: #cdd6f4;
+      min-height: 40px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      outline: none;
+      background: #1e1e2e;
+      cursor: text;
+    }
+
+    .style-code-area:empty::before {
+      content: '/* 这里写 CSS 代码，例如：\A.我的样式 { color: red; } */';
+      color: #6c7086;
+      white-space: pre;
+    }
+
+    .css-selector {
+      color: #c678dd;
+    }
+
+    .css-property {
+      color: #61afef;
+    }
+
+    .css-value {
+      color: #e5c07b;
+    }
+
+    .css-punctuation {
+      color: #abb2bf;
+    }
+
+    .css-comment {
+      color: #6c7086;
+      font-style: italic;
+    }
+
+    .attr-editor {
+      display: inline-block;
+      min-width: 40px;
+      padding: 2px 6px;
+      border-bottom: 2px dashed #888;
+      color: #f0f0f0;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      cursor: text;
+      font-family: monospace;
+      font-size: 0.8em;
+      outline: none;
+      margin: 0 4px;
+    }
+
+    .attr-editor:empty::before {
+      content: attr(data-placeholder);
+      color: #777;
+    }
+
+    .attr-editor.src-ellipsis {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .delete-btn {
+      opacity: 0;
+      transition: 0.2s;
+      cursor: pointer;
+      font-size: 0.85em;
+      padding: 2px 7px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #ccc;
+    }
+
+    .tag-open:hover .delete-btn,
+    .tag-body:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .delete-btn:hover {
+      background: var(--error-color);
+      color: #fff;
+    }
+
+    .tag-class-badge {
+      display: inline-block;
+      background: rgba(198, 120, 221, 0.2);
+      color: #c678dd;
+      font-size: 0.7em;
+      padding: 1px 6px;
+      border-radius: 6px;
+      margin-left: 4px;
+      font-weight: normal;
+      font-family: monospace;
+      vertical-align: middle;
+    }
+
+    .container-children {
+      margin-left: 28px;
+      padding: 10px 14px;
+      border-left: 3px solid var(--container-border);
+      border-radius: 0 10px 10px 0;
+      min-height: 28px;
+      background: rgba(74, 144, 217, 0.03);
+      transition: 0.2s;
+    }
+
+    .container-children.drop-highlight-inside {
+      background: var(--drop-zone-bg) !important;
+      border-left-color: var(--accent) !important;
+    }
+
+    .inner-placeholder {
+      color: var(--text-secondary);
+      font-size: 0.75em;
+      font-style: italic;
+      padding: 8px 10px;
+      opacity: 0.5;
+    }
+
+    .preview-panel {
+      width: 360px;
+      min-width: 360px;
+      background: var(--panel-bg);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .code-preview-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 0.75em;
+      background: #1a1d23;
+      color: #abb2bf;
+      max-height: 45%;
+      white-space: pre-wrap;
+    }
+
+    .render-preview-area {
+      flex: 1;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .render-iframe {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #fff;
+    }
+
+    .btn {
+      padding: 8px 15px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8em;
+      font-weight: 600;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn.btn-accent {
+      background: rgba(97, 175, 239, 0.2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn.btn-small {
+      padding: 4px 10px;
+      font-size: 0.7em;
+    }
+
+    /* ========== 标签帮助按钮 - 显眼样式 ========== */
+    .btn.btn-help {
+      background: linear-gradient(135deg, rgba(240, 165, 0, 0.3), rgba(255, 180, 30, 0.2));
+      border-color: #f0a500;
+      color: #ffd066;
+      font-weight: 700;
+      font-size: 0.82em;
+      letter-spacing: 0.5px;
+      position: relative;
+      box-shadow: 0 0 14px rgba(240, 165, 0, 0.25);
+      animation: help-btn-glow 2.5s ease-in-out infinite;
+    }
+
+    .btn.btn-help:hover {
+      background: linear-gradient(135deg, rgba(240, 165, 0, 0.5), rgba(255, 190, 40, 0.35));
+      border-color: #ffc040;
+      color: #ffe8a0;
+      box-shadow: 0 0 22px rgba(240, 165, 0, 0.45);
+      transform: translateY(-1px);
+    }
+
+    @keyframes help-btn-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 10px rgba(240, 165, 0, 0.2);
+      }
+
+      50% {
+        box-shadow: 0 0 22px rgba(240, 165, 0, 0.45), 0 0 36px rgba(255, 180, 30, 0.18);
+      }
+    }
+
+    /* ========== 帮助弹窗 Modal ========== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-dialog {
+      background: #252830;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      width: 92vw;
+      max-width: 880px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+      overflow: hidden;
+    }
+
+    .modal-overlay.active .modal-dialog {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .modal-header h2 {
+      font-size: 1.2em;
+      color: #ffd066;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: #ccc;
+      cursor: pointer;
+      font-size: 1.1em;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .modal-close:hover {
+      background: var(--error-color);
+      color: #fff;
+      border-color: var(--error-color);
+    }
+
+    .modal-filter-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px 22px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+    }
+
+    .modal-filter-btn {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.75em;
+      font-weight: 600;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+
+    .modal-filter-btn.active,
+    .modal-filter-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-color: #888;
+    }
+
+    .modal-filter-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(97, 175, 239, 0.15);
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 22px 22px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      align-content: start;
+    }
+
+    /* 帮助卡片 */
+    .help-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: 0.2s;
+    }
+
+    .help-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .help-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .help-tag-name {
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-weight: 700;
+      font-size: 0.95em;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 3px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .help-tag-name.tag-badge-container {
+      border-left: 3px solid var(--container-color);
+    }
+
+    .help-tag-name.tag-badge-double {
+      border-left: 3px solid var(--double-color);
+    }
+
+    .help-tag-name.tag-badge-single {
+      border-left: 3px solid var(--single-color);
+    }
+
+    .help-tag-name.tag-badge-error {
+      border-left: 3px solid var(--error-color);
+    }
+
+    .help-type-badge {
+      font-size: 0.65em;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .help-type-badge.badge-container {
+      background: var(--container-bg);
+      color: #6db9f7;
+    }
+
+    .help-type-badge.badge-double {
+      background: var(--double-bg);
+      color: #6cd5e0;
+    }
+
+    .help-type-badge.badge-single {
+      background: var(--single-bg);
+      color: #e8c97a;
+    }
+
+    .help-type-badge.badge-error {
+      background: var(--error-bg);
+      color: #f0888e;
+    }
+
+    .help-desc {
+      font-size: 0.73em;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .help-demo-area {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.85em;
+      color: #222;
+      border: 1px solid #ddd;
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .help-demo-area i {
+      font-style: italic;
+    }
+
+    .help-demo-area del,
+    .help-demo-area s {
+      text-decoration: line-through;
+    }
+
+    .help-demo-area b,
+    .help-demo-area strong {
+      font-weight: bold;
+    }
+
+    .help-demo-area em {
+      font-style: italic;
+    }
+
+    .help-demo-area mark {
+      background: #fff176;
+      padding: 1px 4px;
+      border-radius: 2px;
+      color: #222;
+    }
+
+    .help-demo-area u {
+      text-decoration: underline;
+    }
+
+    .help-demo-area small {
+      font-size: 0.75em;
+    }
+
+    .help-demo-area sub {
+      vertical-align: sub;
+      font-size: 0.7em;
+    }
+
+    .help-demo-area sup {
+      vertical-align: super;
+      font-size: 0.7em;
+    }
+
+    .help-demo-area code {
+      font-family: 'Fira Code', 'Consolas', monospace;
+      background: #e8e8e8;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+
+    .help-demo-area hr {
+      border: none;
+      border-top: 2px solid #ccc;
+      width: 100%;
+      margin: 4px 0;
+    }
+
+    .help-demo-area input {
+      padding: 4px 8px;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+      font-size: 0.85em;
+      outline: none;
+    }
+
+    .help-demo-area .demo-img-placeholder {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, #61afef, #c678dd);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.6em;
+      text-align: center;
+      line-height: 50px;
+    }
+
+    .help-demo-area .demo-container-box {
+      border: 2px dashed #4a90d9;
+      padding: 6px 10px;
+      border-radius: 5px;
+      text-align: center;
+      font-size: 0.8em;
+      color: #4a90d9;
+    }
+
+    .help-demo-area .demo-ul {
+      list-style: disc;
+      padding-left: 18px;
+      margin: 0;
+      font-size: 0.8em;
+    }
+
+    .help-demo-area .demo-ul li {
+      margin: 2px 0;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #333;
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 25px;
+      z-index: 999;
+      transition: 0.35s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.warning-toast {
+      background: #5c3a1e;
+      border: 1px solid #e5c07b;
+      color: #e5c07b;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-tabs">
+        <div class="sidebar-tab active" data-tab="tags">️ 标签库</div>
+        <div class="sidebar-tab" data-tab="styles"> 样式</div>
+        <div class="sidebar-tab" data-tab="presets"> 预设</div>
+      </div>
+      <div class="sidebar-panels">
+        <div class="tab-panel active" id="panel-tags">
+          <div class="sidebar-header">
+            <h2>️ HTML 标签库</h2>
+            <p style="color:#959da5;font-size:0.8em;">拖拽标签到构建区</p>
+          </div>
+          <div class="tag-library-inner">
+            <div class="tag-category">
+              <div class="tag-category-title"><span class="cat-dot container"></span> 容器标签</div>
+              <div class="tag-grid" id="containerTags"></div>
+            </div>
+            <div class="tag-category">
+              <div class="tag-category-title"><span class="cat-dot double"></span> 双标签</div>
+              <div class="tag-grid" id="doubleTags"></div>
+            </div>
+            <div class="tag-category">
+              <div class="tag-category-title"><span class="cat-dot single"></span> 单标签</div>
+              <div class="tag-grid" id="singleTags"></div>
+            </div>
+            <div class="tag-category">
+              <div class="tag-category-title"><span class="cat-dot error"></span> Bug项，仅做参考</div>
+              <div class="tag-grid" id="errorTags"></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="panel-styles">
+          <div style="padding-bottom:8px; color:#c678dd; font-weight:bold;"> 选中标签样式</div>
+          <div id="stylePanelContent">
+            <p style="color:#959da5; font-size:0.8em;">点击构建区标签以编辑样式</p>
+          </div>
+        </div>
+        <div class="tab-panel" id="panel-presets">
+          <div style="padding-bottom:8px; color:#e5c07b; font-weight:bold;">点击模板可以快速进行设计哦</div>
+          <div id="presetsList"></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="build-area-wrapper">
+      <div class="build-header">
+        <h3> 构建区</h3>
+        <div class="btn-group">
+          <button class="btn btn-help" onclick="openHelpModal()" title="查看所有标签的功能介绍和演示">️ 标签帮助</button>
+          <button class="btn btn-accent" onclick="loadExample()"> 示例</button>
+          <button class="btn" onclick="addTagToRoot('div','container','div')">+ div</button>
+          <button class="btn" onclick="clearAll()">️ 清空</button>
+        </div>
+      </div>
+      <div class="build-canvas">
+        <div class="drop-zone-root" id="rootDropZone">
+          <div class="placeholder-text"> 将左侧标签拖到这里，或使用预设模板</div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="preview-panel">
+      <div class="preview-header">
+        <h3> 代码与渲染</h3>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-small" onclick="copyBodyHTML()"> Body</button>
+          <button class="btn btn-small" onclick="copyStyleCSS()"> CSS</button>
+          <button class="btn btn-small" onclick="copyCode()"> 全部</button>
+        </div>
+      </div>
+      <div class="code-preview-area" id="codePreview"></div>
+      <div class="render-preview-area">
+        <div style="padding:4px 12px;font-size:0.7em;background:#2c313a;color:#ccc;"> 页面效果</div>
+        <iframe class="render-iframe" id="renderFrame"></iframe>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ========== 标签帮助弹窗 ========== -->
+  <div class="modal-overlay" id="helpModalOverlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>️ 标签帮助手册</h2>
+        <button class="modal-close" onclick="closeHelpModal()" title="关闭">✕</button>
+      </div>
+      <div class="modal-filter-row" id="helpFilterRow">
+        <button class="modal-filter-btn active" data-filter="all"> 全部</button>
+        <button class="modal-filter-btn" data-filter="container"> 容器标签</button>
+        <button class="modal-filter-btn" data-filter="double"> 双标签</button>
+        <button class="modal-filter-btn" data-filter="single"> 单标签</button>
+        <button class="modal-filter-btn" data-filter="error"> Bug项，仅做参考</button>
+      </div>
+      <div class="modal-body" id="helpModalBody">
+        <!-- 由JS动态填充 -->
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      let nodeIdCounter = 0;
+      const treeData = [];
+      let selectedNodeId = null;
+
+      // 生成随机8位字符串
+      function randomString(length = 8) {
+        return Math.random().toString(36).substring(2, 2 + length).padEnd(length, '0');
+      }
+
+      const KEYFRAMES = {
+        'text-color-change': `@keyframes text-color-change { 0%,100% { color: #e06c75; } 25% { color: #98c379; } 50% { color: #61afef; } 75% { color: #c678dd; } }`,
+        'text-size-pulse': `@keyframes text-size-pulse { 0%,100% { font-size: 1em; } 50% { font-size: 1.3em; } }`,
+        'text-shadow-glow': `@keyframes text-shadow-glow { 0%,100% { text-shadow: 0 0 5px #61afef; } 50% { text-shadow: 0 0 15px #c678dd, 0 0 25px #e06c75; } }`,
+        'text-blink': `@keyframes text-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }`,
+        'neon-flicker': `@keyframes neon-flicker { 0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff0080, 0 0 30px #ff0080; color: #fff; } 20%, 24%, 55% { text-shadow: none; color: #ccc; } }`,
+        'gradient-flow': `@keyframes gradient-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }`,
+        'flip-3d': `@keyframes flip-3d { 0% { transform: perspective(400px) rotateY(0); } 50% { transform: perspective(400px) rotateY(180deg); } 100% { transform: perspective(400px) rotateY(360deg); } }`,
+        'typewriter': `@keyframes typewriter { from { width: 0; } to { width: 100%; } }`,
+        'wave-jump': `@keyframes wave-jump { 0%, 100% { transform: translateY(0); } 20% { transform: translateY(-8px); } 40% { transform: translateY(0); } 60% { transform: translateY(-5px); } 80% { transform: translateY(0); } }`
+      };
+
+      // ========== 标签数据（新增6个字体标签） ==========
+      const tagsData = {
+        container: [
+          { tag: 'body', display: 'body' },
+          { tag: 'div', display: 'div' },
+          { tag: 'head', display: 'head' },
+          { tag: 'html', display: 'html' },
+          { tag: 'ul', display: 'ul' }
+        ],
+        double: [
+          { tag: 'h1', display: 'h1' },
+          { tag: 'h2', display: 'h2' },
+          { tag: 'p', display: 'p' },
+          { tag: 'span', display: 'span' },
+          { tag: 'li', display: 'li' },
+          { tag: 'style', display: 'style' },
+          // ---- 新增6个字体显示标签 ----
+          { tag: 'i', display: 'i' },
+          { tag: 'del', display: 'del' },
+          { tag: 'b', display: 'b' },
+          { tag: 'strong', display: 'strong' },
+          { tag: 'em', display: 'em' },
+          { tag: 'mark', display: 'mark' },
+          { tag: 'a', display: 'a' }
+        ],
+        single: [
+          { tag: 'img', display: 'img' },
+          { tag: 'br', display: 'br' },
+          { tag: 'hr', display: 'hr' },
+          { tag: 'input', display: 'input' },
+          { tag: 'video', display: 'video' },
+          { tag: 'audio', display: 'audio' }
+        ],
+        error: [
+          { tag: 'div-unclosed', display: 'div', error: 'unclosed' },
+          { tag: 'p-missing-bracket', display: 'p', error: 'missing-bracket' }
+        ]
+      };
+
+      // ========== 帮助弹窗数据 ==========
+      const helpData = [{
+        tag: 'body',
+        display: 'body',
+        category: 'container',
+        desc: '页面主体容器，所有可见内容都应放在 &lt;body&gt; 中。它是网页内容的根容器。<br><br> 可以把它想象房子的外框，所有看得见的文字、图片都在这个“身体”里。',
+        demoHTML: '<div class="demo-container-box"> 页面主体内容区域</div>'
+      }, {
+        tag: 'div',
+        display: 'div',
+        category: 'container',
+        desc: '通用块级容器，用于分组和布局。本身无视觉样式，是最常用的布局标签。<br><br> 可以想象为整理东西时用的收纳盒，把相关的内容放在一个盒子里，方便排版。',
+        demoHTML: '<div class="demo-container-box"> div 容器</div>'
+      }, {
+        tag: 'head',
+        display: 'head',
+        category: 'container',
+        desc: '文档头部，包含元数据（如标题、样式、编码等），不直接显示在页面上。<br><br> 可以想象为书的封面和目录，告诉浏览器这个网页的基本信息，但读者看不到目录本身。',
+        demoHTML: '<span style="color:#6c7086;font-style:italic;"> 元数据区（标题、CSS链接等）</span>'
+      }, {
+        tag: 'html',
+        display: 'html',
+        category: 'container',
+        desc: 'HTML文档的根元素，包裹整个页面的所有内容。<br><br> 整棵大树的根，也可以理解为是房子的地基，网页的一切都从它开始，是最大的“包裹”。',
+        demoHTML: '<div class="demo-container-box" style="border-color:#e5c07b;color:#e5c07b;"> 整个HTML文档</div>'
+      }, {
+        tag: 'ul',
+        display: 'ul',
+        category: 'container',
+        desc: '无序列表容器，搭配 &lt;li&gt; 使用，默认显示圆点标记。<br><br> 可以想象为列一个购物清单，每项前面会自动出现小圆点。',
+        demoHTML: '<ul class="demo-ul"><li>列表项 A</li><li>列表项 B</li></ul>'
+      }, {
+        tag: 'h1',
+        display: 'h1',
+        category: 'double',
+        desc: '一级标题，字号最大，通常用于页面主标题。SEO中权重最高。<br><br> 像报纸的头版大标题，最重要的标题就用它，每个页面最好只有一个。',
+        demoHTML: '<h1 style="margin:0;font-size:1.4em;">这是 H1 标题</h1>'
+      }, {
+        tag: 'h2',
+        display: 'h2',
+        category: 'double',
+        desc: '二级标题，字号略小于h1，常用于段落标题。<br><br> 像文章里的小标题，比大标题小一点，但比正文醒目。',
+        demoHTML: '<h2 style="margin:0;font-size:1.15em;">这是 H2 标题</h2>'
+      }, {
+        tag: 'p',
+        display: 'p',
+        category: 'double',
+        desc: '段落标签，用于包裹一段文本，浏览器会自动在段落间添加间距。<br><br> 可以想象为写作文时的一个自然段，段与段之间会自动空开一点距离。',
+        demoHTML: '<p style="margin:0;">这是一段文字内容。</p>'
+      }, {
+        tag: 'span',
+        display: 'span',
+        category: 'double',
+        desc: '行内容器，用于包裹文本片段，常配合CSS进行局部样式设置。<br><br> 可以想象为荧光笔或彩色笔，可以只给几个字加上颜色、大小变化，而不会影响整行文字。',
+        demoHTML: '<span style="color:#c678dd;font-weight:bold;">紫色加粗文字</span>'
+      }, {
+        tag: 'li',
+        display: 'li',
+        category: 'double',
+        desc: '列表项标签，必须放在 &lt;ul&gt; 或 &lt;ol&gt; 内部使用。<br><br> 相当于清单里的每一项，比如“牛奶”、“面包”。不能单独出现，必须放在列表里。',
+        demoHTML: '<span style="padding-left:12px;">• 列表项示例</span>'
+      }, {
+        tag: 'style',
+        display: 'style',
+        category: 'double',
+        desc: '内嵌CSS样式标签，写在 &lt;head&gt; 中，用于定义页面样式规则。<br><br> 像给网页化妆的说明书，写在这里的规则能让页面变漂亮。',
+        demoHTML: '<code>h1 { color: red; }</code>'
+      }, {
+        tag: 'i',
+        display: 'i',
+        category: 'double',
+        desc: '斜体标签，将文字显示为斜体样式，常用于术语、外语词汇等。<br><br> 让文字倾斜，可以想象为英文书名常用的斜体，表示“不同”或“特别”。',
+        demoHTML: '<i>这是斜体文字效果</i>'
+      }, {
+        tag: 'del',
+        display: 'del',
+        category: 'double',
+        desc: '删除线标签，在文字上添加删除线，表示已删除或作废的内容。<br><br> 在文字上划一条横线，看起来像被删除了一样，常用于打折后划掉原价。',
+        demoHTML: '<del>这是删除线效果</del>'
+      }, {
+        tag: 'b',
+        display: 'b',
+        category: 'double',
+        desc: '粗体标签，将文字加粗显示，用于引起注意但无额外语义。<br><br> 让文字变粗，可以想象为标题里的关键词，只是看起来粗，没有特殊含义。',
+        demoHTML: '<b>这是粗体文字效果</b>'
+      }, {
+        tag: 'strong',
+        display: 'strong',
+        category: 'double',
+        desc: '重要文本标签，加粗并带有语义强调，SEO和屏幕阅读器会识别其重要性。<br><br> 让文字变粗，还告诉浏览器“这段很重要”，可以帮助盲人阅读器读出加重语气。',
+        demoHTML: '<strong>这是重要强调文字</strong>'
+      }, {
+        tag: 'em',
+        display: 'em',
+        category: 'double',
+        desc: '强调标签，默认斜体显示，带有语义强调（比 &lt;i&gt; 更有语义价值）。<br><br> 让文字倾斜，也表示强调，比如“我<em>真的</em>很喜欢”，带一点语气。',
+        demoHTML: '<em>这是语义强调文字</em>'
+      }, {
+        tag: 'mark',
+        display: 'mark',
+        category: 'double',
+        desc: '高亮标记标签，为文字添加黄色背景高亮，表示突出或搜索匹配内容。<br><br> 像用荧光笔把文字涂亮，特别醒目，经常用在搜索结果里标记关键词。',
+        demoHTML: '<mark>这是高亮标记文字</mark>'
+      }, {
+        tag: 'img',
+        display: 'img',
+        category: 'single',
+        desc: '图片标签（单标签），通过src属性引入图片，需设置宽高。<br><br> 可以想象为在网页上贴一张照片，需要告诉它图片的地址（src）才会显示。',
+        demoHTML: '<span class="demo-img-placeholder">️</span>'
+      }, {
+        tag: 'br',
+        display: 'br',
+        category: 'single',
+        desc: '换行标签（单标签），在当前位置插入一个换行符。<br><br> 可以想象为在键盘上按回车键，让文字从这里折到下一行。',
+        demoHTML: '第一行<br>第二行（换行后）'
+      }, {
+        tag: 'hr',
+        display: 'hr',
+        category: 'single',
+        desc: '水平分隔线（单标签），在页面中插入一条横线用于内容分隔。<br><br> 像在本子上画一条横线来分隔不同的内容块。',
+        demoHTML: '<hr style="border-color:#ccc;">'
+      }, {
+        tag: 'input',
+        display: 'input',
+        category: 'single',
+        desc: '输入框标签（单标签），用于接收用户输入，支持多种type类型。<br><br> 可以想象为试卷上的填空格，让用户在这里打字输入信息，比如搜索框、密码框。',
+        demoHTML: '<input type="text" placeholder="请输入..." value="">'
+      }, {
+        tag: 'video',
+        display: 'video',
+        category: 'single',
+        desc: '视频标签（单标签），用于嵌入视频文件，支持controls等属性。<br><br> 像在网页里放一个视频播放器，可以播放电影或短片。',
+        demoHTML: '<span style="color:#4a90d9;"> 视频播放器区域</span>'
+      }, {
+        tag: 'audio',
+        display: 'audio',
+        category: 'single',
+        desc: '音频标签（单标签），用于嵌入音频文件，可显示播放控件。<br><br> 像在网页里放一个音乐播放条，可以播放声音或歌曲。',
+        demoHTML: '<span style="color:#56b6c2;"> 音频播放器区域</span>'
+      }, {
+        tag: 'div-unclosed',
+        display: 'div（双标签未闭合）',
+        category: 'error',
+        desc: '️ 常见错误：忘记写闭合标签 &lt;/div&gt;，会导致后续元素被意外包裹，布局错乱。<br><br> 可以想象为打开一个盒子却忘记盖上，结果后面的东西全掉进这个盒子里了，页面会乱掉。',
+        demoHTML: '<span style="color:#e06c75;">&lt;div&gt;耶？闭合标签哪去了？</span>'
+      }, {
+        tag: 'p-missing-bracket',
+        display: 'i（少写尖括号）',
+        category: 'error',
+        desc: '️ 常见错误：标签名缺少尖括号，如写成 p&gt; 而非 &lt;p&gt;，浏览器无法识别。<br><br> 可以想象为写标签时忘记戴“帽子”（&lt;）或“鞋子”（&gt;），浏览器会看不懂，把它当成普通文字。',
+        demoHTML: '<span style="color:#e06c75;"> i&gt;完蛋，这下斜体显示不出来了&lt;/i&gt;</span>'
+      },
+      {
+        tag: 'a',
+        display: 'a',
+        category: 'double',
+        desc: '超链接标签，用于跳转到其他页面或网站。通过 href 属性设置目标地址。<br><br> 就像网页上的“传送门”，点击它就能跳转到另一个地方，比如“点击这里”。',
+        demoHTML: '<a href="https://example.com" style="color:#61afef;"> 点击跳转到示例网站</a>'
+      },
+      ];
+
+      function createTagElement(tag, type, display, error = null) {
+        const el = document.createElement('div');
+        el.className = 'draggable-tag tag-' + (type === 'error' ? 'error' : type);
+        el.draggable = true;
+        el.dataset.tag = tag;
+        el.dataset.type = type;
+        el.dataset.display = display;
+        if (error) el.dataset.error = error;
+        el.innerHTML = type === 'single' ? `&lt;${display} /&gt;` : `&lt;${display}&gt;`;
+        if (error) el.innerHTML = '️ ' + el.innerHTML;
+        return el;
+      }
+
+      function populateTags() {
+        ['container', 'double', 'single', 'error'].forEach(cat => {
+          const grid = document.getElementById(cat + 'Tags');
+          if (!grid) return;
+          grid.innerHTML = '';
+          tagsData[cat].forEach(t => grid.appendChild(createTagElement(t.tag, cat, t.display, t
+            .error || null)));
+        });
+      }
+      populateTags();
+
+      function bindLibraryDrag() {
+        document.querySelectorAll('.draggable-tag').forEach(el => {
+          el.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('application/json', JSON.stringify({
+              tag: el.dataset.tag,
+              type: el.dataset.type,
+              display: el.dataset.display,
+              error: el.dataset.error || null,
+              source: 'library'
+            }));
+            e.dataTransfer.effectAllowed = 'copy';
+          });
+          el.addEventListener('dblclick', () => {
+            addTagToRoot(el.dataset.tag, el.dataset.type, el.dataset.display, el.dataset
+              .error || null);
+          });
+        });
+      }
+      bindLibraryDrag();
+
+      function createNode(tagName, type, displayName, errorType = null) {
+        const node = {
+          id: ++nodeIdCounter,
+          tagName,
+          type,
+          displayName: displayName || tagName,
+          errorType,
+          children: type === 'container' ? [] : null,
+          content: (type === 'double' && tagName === 'style') ? '' : (type === 'double' ? '内容' : ''),
+          style: {},
+          animClass: '',
+          classPrefix: 'cla-' + randomString(8),
+          animClassPrefix: null,
+          attributes: {}
+        };
+        if (type === 'single' && ['img', 'video', 'audio'].includes(tagName)) {
+          node.attributes.src = '';
+          node.attributes.width = '';
+          node.attributes.height = '';
+        } else if (tagName === 'a') {
+          node.attributes = { href: '' };
+        }
+        return node;
+      }
+
+      const rootDropZone = document.getElementById('rootDropZone');
+      const codePreview = document.getElementById('codePreview');
+      const renderFrame = document.getElementById('renderFrame');
+      const toast = document.getElementById('toast');
+      const tabBtns = document.querySelectorAll('.sidebar-tab');
+
+      tabBtns.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const target = tab.dataset.tab;
+          tabBtns.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          document.getElementById('panel-' + target).classList.add('active');
+          if (target === 'styles' && selectedNodeId) renderStylePanel();
+          if (target === 'presets') renderPresetsPanel();
+        });
+      });
+
+      function showToast(msg, type = '') {
+        toast.textContent = msg;
+        toast.className = 'toast ' + (type || '');
+        requestAnimationFrame(() => toast.classList.add('show'));
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+      }
+
+      function escapeHTML(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+      }
+
+      function getNodeClasses(node) {
+        const classes = [];
+        if (node.style && Object.keys(node.style).length) classes.push(node.classPrefix);
+        if (node.animClassPrefix) classes.push(node.animClassPrefix);
+        return classes.length ? classes.join(' ') : '';
+      }
+
+      function findStyleNodes(nodes, result = []) {
+        for (const n of nodes) {
+          if (n.tagName === 'style') result.push(n);
+          if (n.children) findStyleNodes(n.children, result);
+        }
+        return result;
+      }
+
+      function getAllCSSRules() {
+        const rules = [];
+
+        function walk(nodes) {
+          for (const n of nodes) {
+            if (n.style && Object.keys(n.style).length) {
+              const props = Object.entries(n.style).map(([k, v]) => `${k}:${v};`).join(' ');
+              rules.push(`.${n.classPrefix} { ${props} }`);
+            }
+            if (n.animClassPrefix && n.animClass) {
+              rules.push(`.${n.animClassPrefix} { animation: ${n.animClass}; }`);
+            }
+            if (n.children) walk(n.children);
+          }
+        }
+        walk(treeData);
+        return rules;
+      }
+
+      function updateStyleNodes() {
+        const rules = getAllCSSRules();
+        const cssText = rules.join('\n');
+        const styleNodes = findStyleNodes(treeData);
+        styleNodes.forEach(n => { n.content = cssText; });
+      }
+
+      function highlightCSS(code) {
+        if (!code || !code.trim()) return '';
+        let html = escapeHTML(code);
+        html = html.replace(/(\/\*[\s\S]*?\*\/)/g,
+          '<span class="css-comment">$1</span>');
+        html = html.replace(/^([^{]+)(\{)/gm,
+          '<span class="css-selector">$1</span><span class="css-punctuation">$2</span>');
+        html = html.replace(/(\{|;)\s*([a-zA-Z-]+)\s*:/g,
+          '$1 <span class="css-property">$2</span><span class="css-punctuation">:</span>');
+        html = html.replace(/:\s*([^;{}]+)([;}])/g,
+          '<span class="css-punctuation">:</span> <span class="css-value">$1</span><span class="css-punctuation">$2</span>'
+        );
+        return html;
+      }
+
+      function renderBuildArea() {
+        rootDropZone.innerHTML = '';
+        if (treeData.length === 0) {
+          rootDropZone.classList.remove('has-content');
+          rootDropZone.innerHTML =
+            '<div class="placeholder-text"><span style="font-size:2em;"></span><br>将左侧标签拖到这里，或使用预设模板</div>';
+        } else {
+          rootDropZone.classList.add('has-content');
+          treeData.forEach(node => rootDropZone.appendChild(renderNodeBlock(node, 0)));
+        }
+        updateCodePreview();
+        updateRenderPreview();
+        if (selectedNodeId) {
+          const selBlock = rootDropZone.querySelector(`[data-node-id="${selectedNodeId}"]`);
+          if (selBlock) selBlock.classList.add('selected');
+        }
+      }
+
+      function renderNodeBlock(node, depth) {
+        const block = document.createElement('div');
+        block.className = 'build-tag-block';
+        block.dataset.nodeId = node.id;
+        block.draggable = false;
+
+        block.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectNode(node.id);
+        });
+
+        const nodeClasses = getNodeClasses(node);
+        let classBadge = '';
+        if (nodeClasses && node.tagName !== 'style') {
+          classBadge = `<span class="tag-class-badge">.${nodeClasses.replace(/ /g, ' .')}</span>`;
+        }
+
+        if (node.tagName === 'style' && node.type === 'double') {
+          block.innerHTML = `
+                <div class="style-tag-wrapper">
+                    <div class="style-tag-header">
+                        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                        &lt;style&gt;  CSS 样式表
+                        <button class="delete-btn" style="opacity:1;margin-left:auto;">×</button>
+                    </div>
+                    <div class="style-code-area" contenteditable="true">${highlightCSS(node.content)}</div>
+                    <div style="background:#2a2a3a;padding:4px 12px;font-size:0.7em;color:#e5c07b;font-family:monospace;">&lt;/style&gt;</div>
+                </div>`;
+          const delBtn = block.querySelector('.delete-btn');
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteNode(node.id);
+          };
+          const codeArea = block.querySelector('.style-code-area');
+          codeArea.addEventListener('input', () => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = codeArea.innerHTML;
+            node.content = tempDiv.innerText;
+            updateRenderPreview();
+            updateCodePreview();
+          });
+          codeArea.addEventListener('blur', () => {
+            codeArea.innerHTML = highlightCSS(node
+              .content);
+          });
+          codeArea.addEventListener('focus', () => { codeArea.innerText = node.content; });
+          return block;
+        }
+
+        if (node.type === 'container') {
+          const openTag = document.createElement('span');
+          openTag.className = 'tag-open type-container';
+          openTag.innerHTML =
+            `&lt;<strong>${escapeHTML(node.displayName)}</strong>&gt;  ${classBadge}`;
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.textContent = '×';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteNode(node.id);
+          };
+          openTag.appendChild(delBtn);
+          block.appendChild(openTag);
+
+          const childrenArea = document.createElement('div');
+          childrenArea.className = 'container-children';
+          childrenArea.dataset.parentNodeId = node.id;
+          if (node.children && node.children.length > 0) {
+            childrenArea.classList.add('has-children');
+            node.children.forEach(child => childrenArea.appendChild(renderNodeBlock(child,
+              depth + 1)));
+          } else {
+            childrenArea.innerHTML =
+              '<span class="inner-placeholder"> 拖入标签到内部</span>';
+          }
+          block.appendChild(childrenArea);
+
+          const closeTag = document.createElement('span');
+          closeTag.className = 'tag-close type-container';
+          closeTag.innerHTML = `&lt;/<strong>${escapeHTML(node.displayName)}</strong>&gt;`;
+          block.appendChild(closeTag);
+        } else {
+          const body = document.createElement('span');
+          body.className = 'tag-body type-' + node.type;
+          body.innerHTML = buildTagBodyHTML(node) + classBadge;
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.textContent = '×';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteNode(node.id);
+          };
+          body.appendChild(delBtn);
+          block.appendChild(body);
+
+          if (node.type === 'double') {
+            const contentEl = body.querySelector('.tag-content');
+            if (contentEl) {
+              contentEl.addEventListener('input', () => {
+                node.content = contentEl
+                  .innerText;
+                updateCodePreview();
+                updateRenderPreview();
+              });
+              contentEl.addEventListener('blur', () => {
+                if (!contentEl.innerText
+                  .trim() && node.tagName !== 'style') contentEl.innerText =
+                    '内容';
+              });
+            }
+          }
+          if ((node.type === 'single' && ['img', 'video', 'audio'].includes(node.tagName)) || node.tagName === 'a') {
+            const attrEditors = body.querySelectorAll('.attr-editor');
+            attrEditors.forEach(editor => {
+              const attrName = editor.dataset.attr;
+              if (!attrName) return;
+              editor.addEventListener('input', () => {
+                node.attributes[attrName] =
+                  editor.innerText.trim();
+                updateCodePreview();
+                updateRenderPreview();
+              });
+              if (attrName === 'src') {
+                editor.classList.add('src-ellipsis');
+                editor.addEventListener('focus', () => editor.classList.remove(
+                  'src-ellipsis'));
+                editor.addEventListener('blur', () => editor.classList.add(
+                  'src-ellipsis'));
+              }
+            });
+          }
+        }
+        return block;
+      }
+
+      function buildTagBodyHTML(node) {
+        if (node.type === 'double') {
+          const name = escapeHTML(node.displayName);
+          // 为 a 标签添加 href 属性编辑器
+          if (node.tagName === 'a') {
+            const href = node.attributes?.href || '';
+            return `<span style="opacity:0.7">&lt;${name} <span class="attr-editor" contenteditable="true" data-attr="href" data-placeholder="链接地址">${escapeHTML(href)}</span>&gt;</span><span class="tag-content" contenteditable="true">${escapeHTML(node.content)}</span><span style="opacity:0.7">&lt;/${name}&gt;</span>`;
+          }
+          return `<span style="opacity:0.7">&lt;${name}&gt;</span><span class="tag-content" contenteditable="true">${escapeHTML(node.content)}</span><span style="opacity:0.7">&lt;/${name}&gt;</span>`;
+        }
+        if (node.type === 'double') {
+          return `<span style="opacity:0.7">&lt;${name}&gt;</span><span class="tag-content" contenteditable="true">${escapeHTML(node.content)}</span><span style="opacity:0.7">&lt;/${name}&gt;</span>`;
+        } else if (node.type === 'single') {
+          let attrStr = '';
+          if (['img', 'video', 'audio'].includes(node.tagName)) {
+            const src = node.attributes?.src || '';
+            const width = node.attributes?.width || '';
+            const height = node.attributes?.height || '';
+            attrStr =
+              ` <span class="attr-editor" contenteditable="true" data-attr="src" data-placeholder="src">${escapeHTML(src)}</span>`;
+            attrStr +=
+              ` <span class="attr-editor" contenteditable="true" data-attr="width" data-placeholder="宽">${escapeHTML(width)}</span>`;
+            attrStr +=
+              ` <span class="attr-editor" contenteditable="true" data-attr="height" data-placeholder="高">${escapeHTML(height)}</span>`;
+          }
+          return `&lt;${name}${attrStr} /&gt; `;
+        } else if (node.type === 'error') {
+          if (node.errorType === 'unclosed')
+            return `️ &lt;${name}&gt; 缺少闭合!`;
+          if (node.errorType === 'missing-bracket')
+            return `️ <span style="text-decoration:line-through;">&lt;</span>${name}&gt; 缺尖括号`;
+          return `️ &lt;${name}&gt; BUG`;
+        }
+        return `&lt;${name}&gt;`;
+      }
+
+      // ========== 选中逻辑 ==========
+      function selectNode(nodeId) {
+        document.querySelectorAll('.build-tag-block.selected').forEach(b => b.classList.remove(
+          'selected'));
+        const block = rootDropZone.querySelector(`[data-node-id="${nodeId}"]`);
+        if (block) block.classList.add('selected');
+        selectedNodeId = nodeId;
+        document.querySelector('.sidebar-tab[data-tab="styles"]').click();
+        renderStylePanel();
+      }
+
+      function getSelectedNode() {
+        return selectedNodeId ? findNodeById(treeData, selectedNodeId) : null;
+      }
+
+      function renderStylePanel() {
+        const content = document.getElementById('stylePanelContent');
+        const node = getSelectedNode();
+        if (!node || node.tagName === 'style') {
+          content.innerHTML =
+            '<p style="color:#959da5;">请选择一个非 style 标签来设置样式</p>';
+          return;
+        }
+
+        const currentColor = (node.style && node.style['color']) || '#ffffff';
+        const currentBg = (node.style && node.style['background-color']) || '#333333';
+
+        let html = `<div><strong>${node.displayName}</strong> 的样式</div>`;
+
+        const fonts = ['Arial', 'Verdana', 'Times New Roman', 'Courier New', 'Georgia',
+          'Comic Sans MS', '微软雅黑', '宋体', '楷体', '仿宋', '苹方', '黑体'
+        ];
+        html +=
+          `<div class="style-section"><h4> 文字</h4><div class="style-btn-grid">`;
+        fonts.forEach(f => html +=
+          `<button class="style-btn" onclick="setStyle('font-family','${f}')">${f}</button>`);
+        html +=
+          `</div><div class="input-group"><input type="number" id="fontSizeInput" placeholder="字号px" style="width:70px;"><button class="style-btn" onclick="setStyle('font-size', document.getElementById('fontSizeInput').value+'px')">应用</button></div></div>`;
+
+        const presetColors = ['#e06c75', '#98c379', '#61afef', '#c678dd', '#e5c07b', '#56b6c2',
+          '#ffffff', '#000000', '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff922b',
+          '#845ef7', '#f06595', '#20c997'
+        ];
+        html +=
+          `<div class="style-section"><h4> 文字颜色</h4><div class="style-btn-grid">`;
+        presetColors.forEach(c => html +=
+          `<button class="style-btn" onclick="setStyle('color','${c}')"><span class="color-swatch" style="background:${c}"></span>${c}</button>`
+        );
+        html +=
+          `<button class="style-btn" onclick="removeStyle('color')" style="background:#5c3a1e; border-color:#e5c07b; color:#e5c07b;"> 取消文字颜色</button>`;
+        html +=
+          `</div><div class="color-picker-row"><label> 自定义颜色：</label><input type="color" id="colorPickerText" value="${currentColor}" onchange="setStyle('color', this.value)"><span class="current-color-display" style="background:${currentColor}"></span><span style="font-size:0.7em;color:var(--text-secondary);">${currentColor}</span></div></div>`;
+
+        html +=
+          `<div class="style-section"><h4>️ 背景色</h4><div class="style-btn-grid">`;
+        presetColors.forEach(c => html +=
+          `<button class="style-btn" onclick="setStyle('background-color','${c}')"><span class="color-swatch" style="background:${c}"></span>${c}</button>`
+        );
+        html +=
+          `<button class="style-btn" onclick="removeStyle('background-color')" style="background:#5c3a1e; border-color:#e5c07b; color:#e5c07b;"> 取消背景色</button>`;
+        html +=
+          `</div><div class="color-picker-row"><label> 自定义颜色：</label><input type="color" id="colorPickerBg" value="${currentBg}" onchange="setStyle('background-color', this.value)"><span class="current-color-display" style="background:${currentBg}"></span><span style="font-size:0.7em;color:var(--text-secondary);">${currentBg}</span></div></div>`;
+
+        html +=
+          `<div class="style-section"><h4> 边框</h4><div class="style-btn-grid">`;
+        ['1px solid #fff', '2px dashed #61afef', '3px dotted #e5c07b', 'none'].forEach(b => html +=
+          `<button class="style-btn" onclick="setStyle('border','${b}')">${b}</button>`);
+        html += `</div></div>`;
+
+        const anims = [
+          { name: '颜色闪烁', css: 'text-color-change 2s infinite' }, {
+            name: '文字放大',
+            css: 'text-size-pulse 1s infinite'
+          },
+          { name: '阴影发光', css: 'text-shadow-glow 1.5s infinite' }, {
+            name: '闪烁',
+            css: 'text-blink 1s infinite'
+          },
+          { name: '霓虹闪烁', css: 'neon-flicker 1.5s infinite' }, {
+            name: '渐变色流',
+            css: 'gradient-flow 3s linear infinite'
+          },
+          { name: '3D翻转', css: 'flip-3d 2s ease-in-out infinite' }, {
+            name: '打字机',
+            css: 'typewriter 4s steps(40) 1s 1 normal both'
+          },
+          { name: '波浪跳动', css: 'wave-jump 0.6s ease-in-out infinite' }, {
+            name: '无动画',
+            css: ''
+          }
+        ];
+        html +=
+          `<div class="style-section"><h4>文字动画</h4><div class="style-btn-grid">`;
+        anims.forEach(a => html +=
+          `<button class="style-btn" onclick="setAnimation('${a.css}')">${a.name}</button>`);
+        html += `</div></div>`;
+
+        html +=
+          `<button class="btn" onclick="clearStyles()" style="margin-top:8px;">️ 清除所有样式</button>`;
+        content.innerHTML = html;
+      }
+
+      window.setStyle = function (prop, value) {
+        const node = getSelectedNode();
+        if (!node || node.tagName === 'style') return;
+        if (!node.style) node.style = {};
+        node.style[prop] = value;
+        updateStyleNodes();
+        renderBuildArea();
+        updateCodePreview();
+        updateRenderPreview();
+        if (prop === 'color') {
+          const picker = document.getElementById('colorPickerText'); if (picker) picker
+            .value = value;
+        }
+        if (prop === 'background-color') {
+          const picker = document.getElementById('colorPickerBg'); if (picker)
+            picker.value = value;
+        }
+      };
+
+      window.removeStyle = function (prop) {
+        const node = getSelectedNode();
+        if (!node || node.tagName === 'style') return;
+        if (node.style && node.style.hasOwnProperty(prop)) {
+          delete node.style[prop];
+          updateStyleNodes();
+          renderBuildArea();
+          updateCodePreview();
+          updateRenderPreview();
+          renderStylePanel();
+          showToast(` 已取消${prop === 'color' ? '文字颜色' : '背景色'}`);
+        }
+      };
+
+      window.setAnimation = function (css) {
+        const node = getSelectedNode();
+        if (!node || node.tagName === 'style') return;
+        if (!node.animClassPrefix) {
+          node.animClassPrefix = 'anim-' + randomString(8);
+        }
+        node.animClass = css;
+        updateStyleNodes();
+        renderBuildArea();
+        updateCodePreview();
+        updateRenderPreview();
+      };
+      window.clearStyles = function () {
+        const node = getSelectedNode();
+        if (!node || node.tagName === 'style') return;
+        node.style = {};
+        node.animClass = '';
+        node.animClassPrefix = null;
+        updateStyleNodes();
+        renderBuildArea();
+        updateCodePreview();
+        updateRenderPreview();
+      };
+
+      // ========== 预设模板 ==========
+      const presets = [
+        // ========== 原有12个（已加姓名栏 & 配色优化） ==========
+        {
+          name: ' 冰晶磨砂',
+          desc: '高透磨砂玻璃，轻盈通透',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '冰晶卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = ' 你的名字';
+            const name = createNode('p', 'double', 'p');          // 新增姓名栏
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'radial-gradient(circle at top left, rgba(255,255,255,0.85), rgba(255,255,255,0.25))',
+              'backdrop-filter': 'blur(28px) saturate(130%)',
+              '-webkit-backdrop-filter': 'blur(28px) saturate(130%)',
+              'border-radius': '32px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 20px 50px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(255,255,255,0.6)',
+              'border': '1px solid rgba(255,255,255,0.4)',
+              'min-width': '260px'
+            };
+            h1.style = { 'font-size': '2em', 'color': '#1e293b', 'font-weight': '700', 'margin': '0 0 16px 0', 'letter-spacing': '0.5px', 'font-family': 'system-ui, -apple-system, sans-serif' };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#475569', 'margin': '10px 0', 'font-weight': '500' };
+            });
+            card.animClass = 'soft-float 4s ease-in-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 赛博光轨',
+          desc: '霓虹灯管，未来科技感',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '霓虹卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'CYBER PUNK';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(145deg, #0b0f1c 0%, #1a1f33 100%)',
+              'border-radius': '24px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 0 25px rgba(255,0,128,0.3), 0 0 50px rgba(0,255,255,0.15), inset 0 0 30px rgba(0,255,255,0.05)',
+              'border': '2px solid rgba(0, 255, 255, 0.4)',
+              'min-width': '280px'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#00f0ff',
+              'text-shadow': '0 0 12px #ff0080, 0 0 24px #ff8c00, 0 0 40px #00f0ff',
+              'font-family': 'Orbitron, monospace', 'letter-spacing': '6px', 'margin': '0 0 20px 0'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#b3e5fc', 'text-shadow': '0 0 8px #00bcd4', 'margin': '8px 0' };
+            });
+            h1.animClass = 'neon-flicker 1.5s infinite';
+            h1.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 春日花宴',
+          desc: '桃花粉彩，温暖柔光',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '春日卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = '桃花朵朵开';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(145deg, #ffeef8 0%, #fff0f5 100%)',
+              'border-radius': '32px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 20px 40px rgba(255, 105, 180, 0.15), 0 0 0 1px rgba(255, 182, 193, 0.5)',
+              'border': '1px solid rgba(255, 182, 193, 0.6)',
+              'min-width': '260px'
+            };
+            h1.style = { 'font-size': '2em', 'color': '#c2185b', 'font-family': 'Georgia, "楷体", serif', 'letter-spacing': '1px', 'margin': '0 0 16px 0', 'text-shadow': '0 2px 8px rgba(255,105,180,0.2)' };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#ad1457', 'font-family': 'Georgia, "楷体", serif', 'margin': '8px 0', 'opacity': '0.9' };
+            });
+            card.animClass = 'breathing-glow 3s ease-in-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 星尘紫夜',
+          desc: '深空紫幻，星光迷离',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '星尘卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'Stardust';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(135deg, #140534 0%, #0b1b4a 100%)',
+              'border-radius': '28px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 0 40px rgba(180,130,255,0.3), 0 0 80px rgba(100,150,255,0.2), inset 0 0 30px rgba(255,255,255,0.05)',
+              'border': '1px solid rgba(255, 255, 255, 0.15)',
+              'min-width': '280px'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#e9d5ff',
+              'text-shadow': '0 0 15px #a855f7, 0 0 30px #7c3aed, 2px 2px 0 #ffffff30, -2px -2px 0 #ffffff20',
+              'font-family': 'Poppins, sans-serif', 'letter-spacing': '4px', 'margin': '0 0 20px 0'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#c4b5fd', 'text-shadow': '0 0 8px #8b5cf6', 'margin': '8px 0' };
+            });
+            h1.animClass = 'text-shadow-glow 1.5s infinite';
+            h1.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 薄荷新拟态',
+          desc: '柔和凸起，清新如风',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '新拟态卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'Hello, World';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': '#e0f2f1',
+              'border-radius': '30px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '10px 10px 20px #b2dfdb, -10px -10px 20px #ffffff',
+              'min-width': '260px'
+            };
+            h1.style = { 'font-size': '2em', 'color': '#00695c', 'font-family': 'Segoe UI, PingFang SC, sans-serif', 'font-weight': '600', 'margin': '0 0 16px 0', 'letter-spacing': '1px' };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#00796b', 'margin': '10px 0', 'font-weight': '500' };
+            });
+            return data;
+          }
+        },
+        {
+          name: '️ 冰晶极地',
+          desc: '寒冰镜面，通透反光',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '极地卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'FROZEN';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            // 强化冰雪反光质感：纯白半透明渐变 + 镜面内阴影 + 多重光晕
+            card.style = {
+              'background': 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(220,240,255,0.7) 100%)',
+              'backdrop-filter': 'blur(20px) saturate(180%)',
+              '-webkit-backdrop-filter': 'blur(20px) saturate(180%)',
+              'border': '1px solid rgba(255,255,255,0.95)',
+              'border-radius': '32px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 12px 40px rgba(0,150,255,0.2), inset 0 0 20px rgba(255,255,255,0.8), inset 0 2px 8px rgba(255,255,255,0.9)',
+              'min-width': '280px'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#003b4d',
+              'font-family': 'Montserrat, sans-serif', 'letter-spacing': '8px',
+              'text-transform': 'uppercase', 'margin': '0 0 20px 0',
+              'text-shadow': '0 0 10px rgba(255,255,255,0.9), 0 4px 12px rgba(0,200,255,0.3)'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#005b6e', 'margin': '8px 0', 'font-weight': '500', 'text-shadow': '0 1px 4px rgba(255,255,255,0.8)' };
+            });
+            card.animClass = 'luminous-frost 3s ease-in-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 极光幻彩',
+          desc: '流彩极光，梦幻渐变',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '极光卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'AURORA';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(45deg, #a18cd1, #fbc2eb, #a6c1ee, #fccb90, #d4a5a5)',
+              'background-size': '400% 400%',
+              'border-radius': '28px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 25px 55px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.2)',
+              'border': '1px solid rgba(255,255,255,0.3)',
+              'min-width': '280px',
+              'color': '#ffffff'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#ffffff',
+              'text-shadow': '0 4px 15px rgba(0,0,0,0.4), 0 0 30px rgba(255,255,255,0.3)',
+              'font-family': 'Poppins, sans-serif', 'letter-spacing': '6px',
+              'margin': '0 0 20px 0'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#ffffffdd', 'margin': '8px 0', 'text-shadow': '0 2px 6px rgba(0,0,0,0.3)' };
+            });
+            card.animClass = 'rainbow-shift 4s ease infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 深海幽蓝',
+          desc: '深邃海底，发光波纹',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '深海卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'ABYSS';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(160deg, #001a3a 0%, #003566 100%)',
+              'border-radius': '24px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 15px 35px rgba(0,120,255,0.25), 0 0 0 1px rgba(0,200,255,0.3), inset 0 0 30px rgba(0,200,255,0.05)',
+              'border': '1px solid rgba(0,200,255,0.4)',
+              'min-width': '280px'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#b3e0ff',
+              'text-shadow': '0 0 18px #0077ff, 0 0 35px #0055cc',
+              'font-family': 'Rajdhani, sans-serif', 'letter-spacing': '10px',
+              'margin': '0 0 20px 0'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#80c8ff', 'text-shadow': '0 0 10px #0066ff', 'margin': '8px 0' };
+            });
+            card.animClass = 'stream-ripple 2s ease-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 孟菲斯波普',
+          desc: '大胆几何，复古活力',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '孟菲斯卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'MEMPHIS';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': '#f4ff81',
+              'border': '3px solid #000',
+              'border-radius': '0px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '8px 8px 0 #ff4081, 16px 16px 0 #40c4ff, 24px 24px 0 #ffd740',
+              'min-width': '280px'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#000',
+              'font-family': 'Archivo Black, Impact, sans-serif',
+              'letter-spacing': '3px', 'margin': '0 0 20px 0',
+              'text-transform': 'uppercase', 'text-shadow': '3px 3px 0 #ff4081'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#000', 'margin': '8px 0', 'font-weight': '700', 'text-shadow': '1px 1px 0 #40c4ff' };
+            });
+            h1.animClass = 'text-color-change 3s infinite';
+            h1.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: '️ 撒哈拉暖阳',
+          desc: '大地色系，温暖沉稳',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '大地卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'SAHARA';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(135deg, #f5e6d3 0%, #e8d5b7 100%)',
+              'border-radius': '24px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 18px 35px rgba(0,0,0,0.06), 0 0 0 1px #d4b896',
+              'border': '1px solid #d4b896',
+              'min-width': '260px'
+            };
+            h1.style = { 'font-size': '2em', 'color': '#5e4e3c', 'font-family': 'Optima, "苹方", sans-serif', 'letter-spacing': '2px', 'margin': '0 0 16px 0', 'text-shadow': '0 2px 6px rgba(255,255,255,0.5)' };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#7a6a58', 'margin': '10px 0', 'font-weight': '500' };
+            });
+            card.animClass = 'soft-float 5s ease-in-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 赛博幻紫',
+          desc: '霓虹全息，数字迷幻',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '元宇宙卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'METAVERSE';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(130deg, #2d004b, #5f0f8f, #9b5de5, #f72585)',
+              'background-size': '300% 300%',
+              'border-radius': '28px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 0 35px rgba(200,0,255,0.35), 0 0 70px rgba(247,37,133,0.25), inset 0 0 20px rgba(255,255,255,0.1)',
+              'border': '1px solid rgba(255,255,255,0.2)',
+              'min-width': '280px',
+              'color': '#ffffff'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#fff',
+              'text-shadow': '0 0 15px #ff00ff, 0 0 30px #ff00aa, 0 0 50px #fff',
+              'font-family': 'Orbitron, sans-serif', 'letter-spacing': '6px',
+              'margin': '0 0 20px 0'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#ffe0ff', 'text-shadow': '0 0 8px #ff40ff', 'margin': '8px 0' };
+            });
+            card.animClass = 'rainbow-shift 3s linear infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 极简瑞士',
+          desc: '极致黑白，干净利落',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '平面卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'SWISS';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': '#ffffff',
+              'border': '2px solid #000',
+              'border-radius': '0px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '12px 12px 0 #e0e0e0',
+              'min-width': '280px'
+            };
+            h1.style = {
+              'font-size': '2.2em', 'color': '#000',
+              'font-family': 'Helvetica, Arial, sans-serif', 'font-weight': '900',
+              'letter-spacing': '12px', 'text-transform': 'uppercase',
+              'margin': '0 0 20px 0'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#1f2937', 'margin': '8px 0', 'font-weight': '600' };
+            });
+            card.animClass = 'breathing-glow 4s ease-in-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+
+        // ========== 新增4个动画风格（已加姓名栏 & 溪水/冰雪质感强化） ==========
+        {
+          name: ' 流明磨砂',
+          desc: '磨砂玻璃 + 流动光线，高级通透',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '流明磨砂';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'Luminous';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(230,240,255,0.5) 100%)',
+              'backdrop-filter': 'blur(30px) saturate(150%)',
+              '-webkit-backdrop-filter': 'blur(30px) saturate(150%)',
+              'border': '1px solid rgba(255,255,255,0.9)',
+              'border-radius': '36px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 20px 45px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(255,255,255,0.6)',
+              'min-width': '280px'
+            };
+            h1.style = { 'font-size': '2.2em', 'color': '#1e293b', 'font-weight': '600', 'margin': '0 0 18px 0', 'letter-spacing': '1px' };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#475569', 'margin': '10px 0' };
+            });
+            card.animClass = 'luminous-frost 3s ease-in-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 彩虹变换',
+          desc: '彩虹流动，梦幻缤纷',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '彩虹卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'Rainbow';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(270deg, #ff9a9e, #fad0c4, #fad0c4, #ffd1ff, #a1c4fd, #c2e9fb, #ff9a9e)',
+              'background-size': '600% 600%',
+              'border-radius': '28px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 15px 35px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.4)',
+              'border': '1px solid rgba(255,255,255,0.4)',
+              'min-width': '280px',
+              'color': '#1e293b'
+            };
+            h1.style = { 'font-size': '2.2em', 'color': '#1e293b', 'font-weight': '700', 'margin': '0 0 18px 0', 'text-shadow': '0 2px 8px rgba(255,255,255,0.7)' };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#334155', 'margin': '8px 0', 'text-shadow': '0 1px 4px rgba(255,255,255,0.6)' };
+            });
+            card.animClass = 'rainbow-shift 6s ease infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 时光流逝',
+          desc: '柔光呼吸，时光缓缓流淌',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '时光卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'Timeless';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            card.style = {
+              'background': 'linear-gradient(145deg, #faf7f2, #efe6da)',
+              'border-radius': '32px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 12px 28px rgba(0,0,0,0.06), 0 0 0 1px rgba(200,180,150,0.4)',
+              'border': '1px solid rgba(200,180,150,0.5)',
+              'min-width': '280px'
+            };
+            h1.style = { 'font-size': '2.2em', 'color': '#5e4e3c', 'font-family': 'Georgia, "楷体", serif', 'font-weight': '400', 'margin': '0 0 18px 0', 'text-shadow': '0 2px 6px rgba(255,255,255,0.5)' };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#7a6a58', 'font-family': 'Georgia, "楷体", serif', 'margin': '10px 0' };
+            });
+            card.animClass = 'time-flow 4s ease-in-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        },
+        {
+          name: ' 溪水潺潺',
+          desc: '透明流动，水波轻漾',
+          build: function () {
+            const data = [];
+            nodeIdCounter = 0;
+            const html = createNode('html', 'container', 'html');
+            const head = createNode('head', 'container', 'head');
+            const title = createNode('title', 'double', 'title');
+            title.content = '溪水卡片';
+            const style = createNode('style', 'double', 'style');
+            style.content = '';
+            const body = createNode('body', 'container', 'body');
+            const card = createNode('div', 'container', 'div');
+            const h1 = createNode('h1', 'double', 'h1');
+            h1.content = 'Stream';
+            const name = createNode('p', 'double', 'p');
+            name.content = ' 姓名：';
+            const classInfo = createNode('p', 'double', 'p');
+            classInfo.content = ' 班级：';
+            const group = createNode('p', 'double', 'p');
+            group.content = ' 小组：';
+            const hobby = createNode('p', 'double', 'p');
+            hobby.content = ' 爱好：';
+            const motto = createNode('p', 'double', 'p');
+            motto.content = ' 座右铭：';
+            head.children.push(title, style);
+            card.children.push(h1, name, classInfo, group, hobby, motto);
+            body.children.push(card);
+            html.children.push(head, body);
+            data.push(html);
+
+            // 强化透明流动状态：半透明水色 + 毛玻璃效果 + 内阴影模拟水光
+            card.style = {
+              'background': 'linear-gradient(135deg, rgba(200, 240, 255, 0.45) 0%, rgba(180, 230, 250, 0.25) 100%)',
+              'backdrop-filter': 'blur(18px) saturate(120%)',
+              '-webkit-backdrop-filter': 'blur(18px) saturate(120%)',
+              'border': '1px solid rgba(255, 255, 255, 0.7)',
+              'border-radius': '32px',
+              'padding': '40px 48px',
+              'text-align': 'center',
+              'box-shadow': '0 10px 30px rgba(0, 180, 220, 0.25), inset 0 2px 10px rgba(255, 255, 255, 0.8), inset 0 -2px 10px rgba(0, 180, 220, 0.1)',
+              'min-width': '280px'
+            };
+            h1.style = {
+              'font-size': '2.2em',
+              'color': '#005f73',
+              'font-weight': '600',
+              'margin': '0 0 18px 0',
+              'text-shadow': '0 2px 8px rgba(0,188,212,0.3), 0 0 15px rgba(255,255,255,0.6)'
+            };
+            [name, classInfo, group, hobby, motto].forEach(p => {
+              p.style = { 'font-size': '0.95em', 'color': '#0a4c5c', 'margin': '8px 0', 'text-shadow': '0 1px 4px rgba(255,255,255,0.6)' };
+            });
+            card.animClass = 'stream-ripple 2s ease-out infinite';
+            card.animClassPrefix = 'anim-' + randomString(8);
+            return data;
+          }
+        }
+      ];
+      function renderPresetsPanel() {
+        const container = document.getElementById('presetsList');
+        let html =
+          '<p style="color:var(--text-secondary); font-size:0.7em; margin-bottom:10px;">点击预设模板即可快速开始设计</p>';
+        presets.forEach((preset, index) => {
+          html += `
+                <div class="preset-card" onclick="loadPreset(${index})">
+                    <h4>${preset.name}</h4>
+                    <p>${preset.desc}</p>
+                    <div class="preset-preview">${escapeHTML(preset.preview)}</div>
+                </div>`;
+        });
+        container.innerHTML = html;
+      }
+
+      window.loadPreset = function (index) {
+        const preset = presets[index];
+        if (!preset) return;
+        treeData.length = 0;
+        nodeIdCounter = 0;
+        selectedNodeId = null;
+        const newTree = preset.build();
+        treeData.splice(0, treeData.length, ...newTree);
+        updateStyleNodes();
+        renderBuildArea();
+        document.querySelector('.sidebar-tab[data-tab="tags"]').click();
+        showToast(` 已加载预设：${preset.name}`);
+      };
+
+      renderPresetsPanel();
+
+      // ========== 数据操作 ==========
+      function findNodeAndParent(nodes, targetId, parent = null) {
+        for (let i = 0; i < nodes.length; i++) {
+          if (nodes[i].id === targetId) return { parent, node: nodes[i], index: i, list: nodes };
+          if (nodes[i].children) {
+            const res = findNodeAndParent(nodes[i].children, targetId, nodes[i]);
+            if (res) return res;
+          }
+        }
+        return null;
+      }
+
+      function findNodeById(nodes, id) {
+        for (const n of nodes) {
+          if (n.id === id) return n;
+          if (n.children) { const f = findNodeById(n.children, id); if (f) return f; }
+        }
+        return null;
+      }
+
+      function deleteNode(nodeId) {
+        if (selectedNodeId === nodeId) {
+          selectedNodeId = null;
+          document.getElementById('panel-styles').classList.remove('active');
+          document.getElementById('panel-tags').classList.add('active');
+          document.querySelector('.sidebar-tab[data-tab="tags"]').classList.add('active');
+          document.querySelector('.sidebar-tab[data-tab="styles"]').classList.remove('active');
+        }
+        const res = findNodeAndParent(treeData, nodeId);
+        if (!res) return;
+        res.list.splice(res.index, 1);
+        renderBuildArea();
+        showToast('️ 已删除');
+      }
+
+      function addTagToRoot(tag, type, display, error = null) {
+        treeData.push(createNode(tag, type, display, error));
+        renderBuildArea();
+        showToast(` 已添加 <${display}>`);
+      }
+
+      function addNodeToContainer(container, tag, type, display, error = null) {
+        if (!container.children) container.children = [];
+        container.children.push(createNode(tag, type, display, error));
+        renderBuildArea();
+      }
+
+      // ========== 拖放接收 ==========
+      rootDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const targetBlock = e.target.closest('.build-tag-block');
+        const targetChildren = e.target.closest('.container-children');
+        document.querySelectorAll(
+          '.drop-highlight-above, .drop-highlight-below, .drop-highlight-inside')
+          .forEach(el => el.classList.remove('drop-highlight-above', 'drop-highlight-below',
+            'drop-highlight-inside'));
+        if (targetChildren && !targetBlock) {
+          targetChildren.classList.add('drop-highlight-inside');
+        } else if (targetBlock) {
+          const rect = targetBlock.getBoundingClientRect();
+          const mouseY = e.clientY,
+            midY = rect.top + rect.height / 2;
+          const nodeId = parseInt(targetBlock.dataset.nodeId);
+          const node = findNodeAndParent(treeData, nodeId)?.node;
+          if (node && node.type === 'container') {
+            const threshold = rect.height * 0.3;
+            if (mouseY > midY - threshold && mouseY < midY + threshold) {
+              const area = targetBlock.querySelector('.container-children');
+              if (area) area.classList.add('drop-highlight-inside');
+            } else if (mouseY < midY) targetBlock.classList.add('drop-highlight-above');
+            else targetBlock.classList.add('drop-highlight-below');
+          } else {
+            if (mouseY < midY) targetBlock.classList.add('drop-highlight-above');
+            else targetBlock.classList.add('drop-highlight-below');
+          }
+        } else {
+          rootDropZone.classList.add('drag-over');
+        }
+      });
+
+      rootDropZone.addEventListener('dragleave', (e) => {
+        if (e.target === rootDropZone) {
+          rootDropZone.classList.remove('drag-over');
+          document.querySelectorAll(
+            '.drop-highlight-above, .drop-highlight-below, .drop-highlight-inside')
+            .forEach(el => el.classList.remove('drop-highlight-above', 'drop-highlight-below',
+              'drop-highlight-inside'));
+        }
+      });
+
+      rootDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        rootDropZone.classList.remove('drag-over');
+        document.querySelectorAll(
+          '.drop-highlight-above, .drop-highlight-below, .drop-highlight-inside')
+          .forEach(el => el.classList.remove('drop-highlight-above', 'drop-highlight-below',
+            'drop-highlight-inside'));
+        const json = e.dataTransfer.getData('application/json');
+        if (!json) return;
+        let data;
+        try { data = JSON.parse(json); } catch (ex) { return; }
+        if (data.source !== 'library') return;
+
+        const targetBlock = e.target.closest('.build-tag-block');
+        const targetChildren = e.target.closest('.container-children');
+        if (targetChildren && !targetBlock) {
+          const parentId = parseInt(targetChildren.dataset.parentNodeId);
+          const parentNode = findNodeAndParent(treeData, parentId)?.node;
+          if (parentNode && parentNode.type === 'container') {
+            addNodeToContainer(parentNode, data.tag, data.type, data.display, data.error);
+            showToast(` 放入 <${parentNode.displayName}> 内部`);
+          }
+        } else if (targetBlock) {
+          const targetNodeId = parseInt(targetBlock.dataset.nodeId);
+          const targetNode = findNodeAndParent(treeData, targetNodeId)?.node;
+          if (!targetNode) return;
+          const rect = targetBlock.getBoundingClientRect();
+          const mouseY = e.clientY,
+            midY = rect.top + rect.height / 2;
+          let intoContainer = false;
+          if (targetNode.type === 'container') {
+            const threshold = rect.height * 0.3;
+            if (mouseY > midY - threshold && mouseY < midY + threshold) intoContainer = true;
+          }
+          if (intoContainer) {
+            addNodeToContainer(targetNode, data.tag, data.type, data.display, data.error);
+            showToast(` 放入 <${targetNode.displayName}> 内部`);
+          } else {
+            const targetRes = findNodeAndParent(treeData, targetNodeId);
+            if (targetRes) {
+              const list = targetRes.parent ? targetRes.parent.children : treeData;
+              const idx = mouseY < midY ? targetRes.index : targetRes.index + 1;
+              list.splice(idx, 0, createNode(data.tag, data.type, data.display, data
+                .error));
+              renderBuildArea();
+              showToast(` 插入标签`);
+            }
+          }
+        } else {
+          addTagToRoot(data.tag, data.type, data.display, data.error);
+        }
+      });
+
+      rootDropZone.addEventListener('click', (e) => {
+        if (e.target === rootDropZone) {
+          document.querySelectorAll('.build-tag-block.selected').forEach(b => b.classList.remove(
+            'selected'));
+          selectedNodeId = null;
+          document.querySelector('.sidebar-tab[data-tab="tags"]').click();
+        }
+      });
+
+      // ========== 代码预览与渲染 ==========
+      function updateCodePreview() {
+        const lines = [];
+        if (!treeData.length) { lines.push('// 拖拽标签开始构建'); } else {
+          treeData.forEach(n =>
+            generateCodeLines(n, lines, 0));
+        }
+        codePreview.innerHTML = lines.map((l, i) =>
+          `<span style="color:#4a5568;">${i + 1}</span>  ${l}`).join('\n');
+      }
+
+      function generateCodeLines(node, lines, indent) {
+        const pad = '  '.repeat(indent);
+        const cls = getNodeClasses(node);
+        const classAttr = cls ? ` class="${cls}"` : '';
+        if (node.type === 'container') {
+          lines.push(
+            `${pad}<span style="color:#61afef;">&lt;${escapeHTML(node.displayName)}${classAttr}&gt;</span>`
+          );
+          if (node.children && node.children.length) {
+            node.children.forEach(c =>
+              generateCodeLines(c, lines, indent + 1));
+          } else {
+            lines.push(
+              `${pad}  <span style="color:#5c6370;">&lt;!-- 空 --&gt;</span>`);
+          }
+          lines.push(
+            `${pad}<span style="color:#61afef;">&lt;/${escapeHTML(node.displayName)}&gt;</span>`);
+        } else if (node.type === 'double') {
+          let extraAttr = '';
+          if (node.tagName === 'a' && node.attributes?.href) extraAttr += ` href="${escapeHTML(node.attributes.href)}"`;
+          if (node.tagName === 'style') {
+            lines.push(`${pad}<span style="color:#e5c07b;">&lt;style&gt;</span>`);
+            if (node.content) {
+              node.content.split('\n').forEach(line => lines.push(
+                `${pad}  ${escapeHTML(line)}`));
+            }
+            lines.push(`${pad}<span style="color:#e5c07b;">&lt;/style&gt;</span>`);
+          } else {
+            lines.push(
+              `${pad}<span style="color:#56b6c2;">&lt;${escapeHTML(node.displayName)}${classAttr}&gt;</span>${escapeHTML(node.content)}<span style="color:#56b6c2;">&lt;/${escapeHTML(node.displayName)}&gt;</span>`
+            );
+          }
+        } else if (node.type === 'single') {
+          let attr = '';
+          if (node.attributes?.src) attr += ` src="${escapeHTML(node.attributes.src)}"`;
+          if (node.attributes?.width) attr += ` width="${escapeHTML(node.attributes.width)}"`;
+          if (node.attributes?.height) attr += ` height="${escapeHTML(node.attributes.height)}"`;
+          lines.push(
+            `${pad}<span style="color:#e5c07b;">&lt;${escapeHTML(node.displayName)}${attr}${classAttr} /&gt;</span>`
+          );
+        } else if (node.type === 'error') {
+          lines.push(
+            `${pad}<span style="color:#e06c75;">&lt;${escapeHTML(node.displayName)}${classAttr}&gt;</span> `
+          );
+        }
+      }
+
+      function getRenderHTML() {
+        const usedAnimNames = new Set();
+
+        function collectAnimNames(nodes) {
+          for (const n of nodes) {
+            if (n.animClass) {
+              const animPart = n.animClass.split(',');
+              animPart.forEach(part => {
+                const name = part.trim().split(' ')[0];
+                if (name) usedAnimNames.add(name);
+              });
+            }
+            if (n.children) collectAnimNames(n.children);
+          }
+        }
+        collectAnimNames(treeData);
+
+        let keyframesCSS = '';
+        usedAnimNames.forEach(name => { if (KEYFRAMES[name]) keyframesCSS += KEYFRAMES[name] + '\n'; });
+
+        let styleContent = '';
+        findStyleNodes(treeData).forEach(s => { if (s.content) styleContent += s.content + '\n'; });
+        const allRules = getAllCSSRules();
+        if (!styleContent && allRules.length) { styleContent = allRules.join('\n'); }
+
+        let fullStyle = '';
+        if (keyframesCSS) fullStyle += keyframesCSS + '\n';
+        if (styleContent.trim()) fullStyle += styleContent + '\n';
+
+        let styleTag = '';
+        if (fullStyle.trim()) { styleTag = `<style>\n${fullStyle}\n</style>\n`; }
+
+        const bodyLines = [];
+        treeData.forEach(n => { if (n.tagName !== 'style') renderPlainLines(n, bodyLines, 0); });
+        return `<!DOCTYPE html><html><head><meta charset="UTF-8">${styleTag}</head><body>${bodyLines.join('\n')}</body></html>`;
+      }
+
+      function renderPlainLines(node, lines, indent) {
+        const pad = '  '.repeat(indent);
+        const cls = getNodeClasses(node);
+        const classAttr = cls ? ` class="${cls}"` : '';
+        if (node.type === 'container') {
+          lines.push(`${pad}<${node.displayName}${classAttr}>`);
+          if (node.children) node.children.forEach(c => renderPlainLines(c, lines, indent + 1));
+          lines.push(`${pad}</${node.displayName}>`);
+        } else if (node.type === 'double') {
+          if (node.tagName === 'style') return;
+          let extraAttr = '';
+          if (node.tagName === 'a' && node.attributes?.href) extraAttr += ` href="${node.attributes.href}"`;
+          lines.push(`${pad}<${node.displayName}${extraAttr}${classAttr}>${node.content}</${node.displayName}>`);
+        } else if (node.type === 'single') {
+          let attr = '';
+          if (node.attributes?.src) attr += ` src="${node.attributes.src}"`;
+          if (node.attributes?.width) attr += ` width="${node.attributes.width}"`;
+          if (node.attributes?.height) attr += ` height="${node.attributes.height}"`;
+          lines.push(`${pad}<${node.displayName}${attr}${classAttr} />`);
+        } else {
+          lines.push(`${pad}<${node.displayName}${classAttr}>`);
+        }
+      }
+
+      function updateRenderPreview() {
+        const html = getRenderHTML();
+        const doc = renderFrame.contentDocument || renderFrame.contentWindow.document;
+        doc.open();
+        doc.write(html);
+        doc.close();
+      }
+
+      // ========== 复制功能 ==========
+      function copyCode() {
+        const html = getRenderHTML();
+        navigator.clipboard.writeText(html).then(() => showToast(' 完整代码已复制'));
+      }
+
+      function findBodyNode(nodes) {
+        for (const n of nodes) {
+          if (n.tagName === 'body') return n;
+          if (n.children) {
+            const found = findBodyNode(n.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      function copyBodyHTML() {
+        const bodyNode = findBodyNode(treeData);
+        if (!bodyNode) {
+          showToast('️ 未找到 body 标签', 'warning-toast');
+          return;
+        }
+        if (!bodyNode.children || bodyNode.children.length === 0) {
+          showToast('️ body 中暂无内容', 'warning-toast');
+          return;
+        }
+        const bodyLines = [];
+        bodyNode.children.forEach(child => renderPlainLines(child, bodyLines, 0));
+        const bodyHTML = bodyLines.join('\n');
+        navigator.clipboard.writeText(bodyHTML).then(() => showToast(' 已复制 body 内部 HTML'));
+      }
+
+      function copyStyleCSS() {
+        // 1. 收集当前树中所有被使用的动画名称
+        const usedAnimNames = new Set();
+        function collectAnimNames(nodes) {
+          for (const n of nodes) {
+            if (n.animClass) {
+              // 动画属性可能包含多个值（备用），取第一个动画名称
+              const animPart = n.animClass.split(',');
+              animPart.forEach(part => {
+                const name = part.trim().split(' ')[0];
+                if (name) usedAnimNames.add(name);
+              });
+            }
+            if (n.children) collectAnimNames(n.children);
+          }
+        }
+        collectAnimNames(treeData);
+
+        // 2. 构建完整的 CSS 内容
+        let cssContent = '';
+
+        // 添加所有被使用的 @keyframes 定义
+        usedAnimNames.forEach(name => {
+          if (KEYFRAMES[name]) {
+            cssContent += KEYFRAMES[name] + '\n';
+          }
+        });
+
+        // 添加 <style> 标签中已有的内容（包括手动编写的规则）
+        findStyleNodes(treeData).forEach(s => {
+          if (s.content && s.content.trim()) {
+            cssContent += s.content + '\n';
+          }
+        });
+
+        // 3. 如果没有 <style> 标签或其为空，则补充自动生成的样式规则（来自样式面板）
+        const hasStyleContent = findStyleNodes(treeData).some(s => s.content && s.content.trim());
+        if (!hasStyleContent) {
+          const allRules = getAllCSSRules(); // 包含 .cla-* 和 .anim-* 规则
+          if (allRules.length) {
+            cssContent += allRules.join('\n') + '\n';
+          }
+        }
+
+        // 4. 若最终仍为空，显示占位文本
+        if (!cssContent.trim()) {
+          cssContent = '/* 暂无 CSS 样式 */';
+        }
+
+        navigator.clipboard.writeText(cssContent.trim()).then(() => showToast(' 已复制 CSS 样式（含关键帧）'));
+      }
+
+      window.copyCode = copyCode;
+      window.copyBodyHTML = copyBodyHTML;
+      window.copyStyleCSS = copyStyleCSS;
+
+      function loadExample() {
+        treeData.length = 0;
+        nodeIdCounter = 0;
+        selectedNodeId = null;
+        const html = createNode('html', 'container', 'html');
+        const head = createNode('head', 'container', 'head');
+        const title = createNode('title', 'double', 'title');
+        title.content = '我的网页';
+        const style = createNode('style', 'double', 'style');
+        style.content = '';
+        const body = createNode('body', 'container', 'body');
+        const p = createNode('p', 'double', 'p');
+        p.content = '你好，世界！';
+        head.children.push(title, style);
+        body.children.push(p);
+        html.children.push(head, body);
+        treeData.push(html);
+        updateStyleNodes();
+        renderBuildArea();
+        document.querySelector('.sidebar-tab[data-tab="tags"]').click();
+        showToast('已加载');
+      }
+
+      function clearAll() {
+        treeData.length = 0;
+        nodeIdCounter = 0;
+        selectedNodeId = null;
+        renderBuildArea();
+        document.querySelector('.sidebar-tab[data-tab="tags"]').click();
+        showToast('已清空');
+      }
+
+      window.loadExample = loadExample;
+      window.clearAll = clearAll;
+      window.addTagToRoot = addTagToRoot;
+
+      // ========== 标签帮助弹窗逻辑 ==========
+      function buildHelpCards(filterCategory = 'all') {
+        const body = document.getElementById('helpModalBody');
+        const filtered = filterCategory === 'all' ?
+          helpData :
+          helpData.filter(h => h.category === filterCategory);
+
+        body.innerHTML = filtered.map(h => {
+          const badgeClass = 'badge-' + h.category;
+          const tagBadgeClass = 'tag-badge-' + h.category;
+          return `
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <span class="help-tag-name ${tagBadgeClass}">&lt;${escapeHTML(h.display)}&gt;</span>
+                        <span class="help-type-badge ${badgeClass}">${getCategoryLabel(h.category)}</span>
+                    </div>
+                    <div class="help-desc">${h.desc}</div>
+                    <div class="help-demo-area">${h.demoHTML}</div>
+                </div>`;
+        }).join('');
+      }
+
+      function getCategoryLabel(cat) {
+        const map = { container: '容器', double: '双标签', single: '单标签', error: 'Bug' };
+        return map[cat] || cat;
+      }
+
+      function openHelpModal() {
+        const overlay = document.getElementById('helpModalOverlay');
+        buildHelpCards('all');
+        // 重置筛选按钮
+        document.querySelectorAll('#helpFilterRow .modal-filter-btn').forEach(b => b.classList.remove(
+          'active'));
+        const allBtn = document.querySelector('#helpFilterRow .modal-filter-btn[data-filter="all"]');
+        if (allBtn) allBtn.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeHelpModal() {
+        const overlay = document.getElementById('helpModalOverlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+
+      // 绑定筛选按钮
+      document.getElementById('helpFilterRow').addEventListener('click', (e) => {
+        const btn = e.target.closest('.modal-filter-btn');
+        if (!btn) return;
+        const filter = btn.dataset.filter;
+        document.querySelectorAll('#helpFilterRow .modal-filter-btn').forEach(b => b.classList
+          .remove('active'));
+        btn.classList.add('active');
+        buildHelpCards(filter);
+      });
+
+      // 点击背景关闭弹窗
+      document.getElementById('helpModalOverlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          closeHelpModal();
+        }
+      });
+
+      // ESC 关闭弹窗
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const overlay = document.getElementById('helpModalOverlay');
+          if (overlay.classList.contains('active')) {
+            closeHelpModal();
+          }
+        }
+      });
+
+      // 暴露到全局
+      window.openHelpModal = openHelpModal;
+      window.closeHelpModal = closeHelpModal;
+
+      // ========== 初始化 ==========
+      loadExample();
+    })();
+  </script>
+</body>
+
+</html>

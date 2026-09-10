@@ -1,0 +1,44 @@
+{
+  "七年级1班": {
+    "第一组": {
+      "students": [
+        {
+          "name": "管理员",
+          "password": "110011",
+          "isLeader": true
+        },
+        {
+          "name": "刘若童",
+          "password": "lrt011234",
+          "isLeader": true
+        },
+        {
+          "name": "周湘芸",
+          "password": "zxy011234",
+          "isLeader": true
+        }
+      ],
+      "maxUsers": 6
+    },
+    "第二组": {
+      "students": [
+        {
+          "name": "管理员",
+          "password": "110011",
+          "isLeader": true
+        }
+      ],
+      "maxUsers": 5
+    },
+    "第三组": {
+      "students": [
+        {
+          "name": "管理员",
+          "password": "110011",
+          "isLeader": true
+        }
+      ],
+      "maxUsers": 7
+    }
+  }
+}

@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>协作网页制作</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; }
+        #loginPanel {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f0f4f8; display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1); text-align: center; min-width: 280px;
+        }
+        .login-box h2 { margin-bottom: 20px; }
+        .login-box select, .login-box input {
+            width: 200px; padding: 8px; margin: 6px; font-size: 16px;
+        }
+        .login-box button {
+            margin-top: 15px; padding: 10px 30px; font-size: 16px;
+            background: #4a90e2; color: white; border: none; border-radius: 4px; cursor: pointer;
+        }
+        #loginError { color: red; margin-top: 10px; min-height: 20px; }
+        #mainPanel { display: none; height: 100vh; flex-direction: column; }
+        .toolbar {
+            height: 50px; background: #2c3e50; color: white; display: flex;
+            align-items: center; padding: 0 20px; justify-content: space-between;
+        }
+        .toolbar .group-info { font-size: 16px; }
+        .toolbar button {
+            margin-left: 12px; padding: 6px 16px; background: #3498db;
+            color: white; border: none; border-radius: 3px; cursor: pointer;
+        }
+        .toolbar button:hover { background: #2980b9; }
+        .toolbar button:disabled { background: #95a5a6; cursor: not-allowed; }
+        .workspace { display: flex; flex: 1; min-height: 0; }
+        .editor-area { flex: 1; display: flex; flex-direction: column; border-right: 2px solid #ddd; min-width: 0; }
+        .editor-container { position: relative; flex: 1; overflow: hidden; }
+        .editor-highlight, .editor-textarea {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 15px; font-family: 'Courier New', monospace; font-size: 16px;
+            line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;
+            overflow: auto; border: none; outline: none; resize: none; box-sizing: border-box;
+        }
+        .editor-highlight {
+            color: #333; background: white; pointer-events: none; z-index: 1;
+        }
+        .editor-textarea {
+            color: transparent; caret-color: black; background: transparent; z-index: 2;
+        }
+        .editor-textarea::placeholder { color: #aaa; }
+        .highlight-style-bg { background-color: #fce4ec; border-radius: 2px; }
+        .highlight-body-bg { background-color: #e3f2fd; border-radius: 2px; }
+        .preview-area { flex: 1; display: flex; flex-direction: column; }
+        .preview-area iframe { flex: 1; border: none; background: white; }
+        .status-bar {
+            height: 30px; background: #ecf0f1; display: flex;
+            align-items: center; padding: 0 15px; font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loginPanel">
+        <div class="login-box">
+            <h2>加入练习小组</h2>
+            <select id="classSelect"><option value="">加载中...</option></select><br>
+            <select id="groupSelect"><option value="">请先选择班级</option></select><br>
+            <input type="text" id="usernameInput" placeholder="姓名"><br>
+            <input type="password" id="passwordInput" placeholder="密码"><br>
+            <button id="loginBtn">进入</button>
+            <p id="loginError"></p>
+        </div>
+    </div>
+
+    <div id="mainPanel">
+        <div class="toolbar">
+            <span class="group-info">当前小组：<strong id="currentGroupName"></strong> | 在线：<span id="onlineCount">0</span>人</span>
+            <div>
+                <button id="saveLocalBtn">💾 保存到本地</button>
+                <button id="saveServerBtn">☁️ 发送到服务器</button>
+            </div>
+        </div>
+        <div class="workspace">
+            <div class="editor-area">
+                <div class="editor-container">
+                    <div class="editor-highlight" id="highlightLayer"></div>
+                    <textarea class="editor-textarea" id="codeEditor" placeholder="在这里编写 HTML 代码..."></textarea>
+                </div>
+            </div>
+            <div class="preview-area">
+                <iframe id="previewFrame"></iframe>
+            </div>
+        </div>
+        <div class="status-bar" id="statusBar">就绪</div>
+    </div>
+
+    <script>
+        // const SERVER_IP = '127.0.0.1'; // 教师机 IP
+        const SERVER_IP = '127.0.0.1'; //这里输入教师机IP和端口号
+        const SERVER_PORT = 8848;
+        const WS_URL = `ws://${SERVER_IP}:${SERVER_PORT}`;
+
+        const TAG_COLORS = {
+            'html':'#e67e22','head':'#e67e22','body':'#e67e22','title':'#e67e22',
+            'div':'#9b59b6','span':'#9b59b6','p':'#27ae60','a':'#e74c3c','img':'#3498db',
+            'h1':'#2c3e50','h2':'#2c3e50','h3':'#2c3e50','h4':'#2c3e50','h5':'#2c3e50','h6':'#2c3e50',
+            'ul':'#f39c12','ol':'#f39c12','li':'#f39c12',
+            'table':'#1abc9c','tr':'#1abc9c','td':'#1abc9c','th':'#1abc9c',
+            'br':'#95a5a6','hr':'#95a5a6',
+            'input':'#e91e63','button':'#e91e63','form':'#e91e63',
+            'style':'#c0392b','script':'#c0392b'
+        };
+        const DEFAULT_TAG_COLOR = '#8e44ad';
+
+        const loginPanel = document.getElementById('loginPanel');
+        const mainPanel = document.getElementById('mainPanel');
+        const classSelect = document.getElementById('classSelect');
+        const groupSelect = document.getElementById('groupSelect');
+        const usernameInput = document.getElementById('usernameInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const currentGroupName = document.getElementById('currentGroupName');
+        const onlineCount = document.getElementById('onlineCount');
+        const codeEditor = document.getElementById('codeEditor');
+        const highlightLayer = document.getElementById('highlightLayer');
+        const previewFrame = document.getElementById('previewFrame');
+        const statusBar = document.getElementById('statusBar');
+        const saveLocalBtn = document.getElementById('saveLocalBtn');
+        const saveServerBtn = document.getElementById('saveServerBtn');
+
+        saveServerBtn.disabled = true;
+        saveServerBtn.textContent = '发送到服务器（仅组长）';
+
+        let ws = null;
+        let groupFullName = '';
+        let remoteChange = false;
+        let classData = {};
+        let formattingInProgress = false;
+
+        const MAX_HISTORY = 100;
+        let undoStack = [];
+        let redoStack = [];
+
+        function pushHistory(value) {
+            if (undoStack.length >= MAX_HISTORY) undoStack.shift();
+            undoStack.push(value);
+            redoStack = [];
+        }
+
+        function setEditorValue(newValue) {
+            codeEditor.value = newValue;
+            updateHighlight();
+            updatePreview();
+            if (ws && ws.readyState === WebSocket.OPEN && groupFullName && !remoteChange) {
+                ws.send(JSON.stringify({ type: 'codeUpdate', code: newValue }));
+            }
+            codeEditor.selectionStart = 0;
+            codeEditor.selectionEnd = 0;
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            const current = codeEditor.value;
+            redoStack.push(current);
+            const previous = undoStack.pop();
+            setEditorValue(previous);
+            statusBar.textContent = '撤销 (Ctrl+Z)';
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            const current = codeEditor.value;
+            undoStack.push(current);
+            const next = redoStack.pop();
+            setEditorValue(next);
+            statusBar.textContent = '重做 (Ctrl+Y)';
+        }
+
+        function clearHistory() {
+            undoStack = [];
+            redoStack = [];
+        }
+
+        let protectedTagSet = new Set();
+        let protectedCloseTagSet = new Set();
+
+        function initProtectedTags(html) {
+            const voidElements = new Set([
+                'br','hr','img','input','meta','link','area','base','col','embed','source','track','wbr'
+            ]);
+            const tagRegex = /<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^>]*?)?\/?>/g;
+            const stack = [];
+            const startTags = new Set();
+            const closeTags = new Set();
+
+            let match;
+            while ((match = tagRegex.exec(html)) !== null) {
+                const fullTag = match[0];
+                if (fullTag.startsWith('</')) {
+                    const tagName = fullTag.slice(2, -1).toLowerCase();
+                    for (let i = stack.length - 1; i >= 0; i--) {
+                        if (stack[i].tagName === tagName) {
+                            if (startTags.has(stack[i].originalString)) {
+                                closeTags.add(fullTag);
+                            }
+                            stack.splice(i);
+                            break;
+                        }
+                    }
+                    continue;
+                }
+                const tagMatch = /^<([a-zA-Z][a-zA-Z0-9]*)/.exec(fullTag);
+                if (!tagMatch) continue;
+                const tagName = tagMatch[1].toLowerCase();
+                const isSelfClosing = fullTag.endsWith('/>') || voidElements.has(tagName);
+                const hasNonDel = /id\s*=\s*"nonDel"/i.test(fullTag);
+                if (hasNonDel) {
+                    startTags.add(fullTag);
+                    if (isSelfClosing) closeTags.add(fullTag);
+                }
+                if (!isSelfClosing) {
+                    stack.push({ tagName, originalString: fullTag });
+                }
+            }
+            const doctypeRegex = /<!DOCTYPE[^>]*id\s*=\s*"nonDel"[^>]*>/gi;
+            while ((match = doctypeRegex.exec(html)) !== null) {
+                startTags.add(match[0]);
+                closeTags.add(match[0]);
+            }
+            protectedTagSet = startTags;
+            protectedCloseTagSet = closeTags;
+        }
+
+        function getCurrentProtectedRanges(html) {
+            const ranges = [];
+            if (protectedTagSet.size === 0) return ranges;
+            const voidElements = new Set([
+                'br','hr','img','input','meta','link','area','base','col','embed','source','track','wbr'
+            ]);
+            const tagRegex = /<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^>]*?)?\/?>/g;
+            const stack = [];
+            let match;
+            while ((match = tagRegex.exec(html)) !== null) {
+                const fullTag = match[0];
+                const start = match.index;
+                const end = start + fullTag.length;
+                if (fullTag.startsWith('</')) {
+                    const tagName = fullTag.slice(2, -1).toLowerCase();
+                    for (let i = stack.length - 1; i >= 0; i--) {
+                        if (stack[i].tagName === tagName) {
+                            if (protectedTagSet.has(stack[i].originalString) && protectedCloseTagSet.has(fullTag)) {
+                                ranges.push({ start, end });
+                            }
+                            stack.splice(i);
+                            break;
+                        }
+                    }
+                    continue;
+                }
+                const tagNameMatch = /^<([a-zA-Z][a-zA-Z0-9]*)/.exec(fullTag);
+                if (!tagNameMatch) continue;
+                const tagName = tagNameMatch[1].toLowerCase();
+                const isSelfClosing = fullTag.endsWith('/>') || voidElements.has(tagName);
+                if (protectedTagSet.has(fullTag)) {
+                    ranges.push({ start, end });
+                }
+                if (!isSelfClosing) {
+                    stack.push({ tagName, start, end, originalString: fullTag });
+                }
+            }
+            const doctypeRegex = /<!DOCTYPE[^>]*id\s*=\s*"nonDel"[^>]*>/gi;
+            while ((match = doctypeRegex.exec(html)) !== null) {
+                const full = match[0];
+                if (protectedTagSet.has(full)) {
+                    ranges.push({ start: match.index, end: match.index + full.length });
+                }
+            }
+            return ranges;
+        }
+
+        function getEditableSegments(start, end, ranges) {
+            if (start >= end) return [];
+            let segments = [[start, end]];
+            for (let r of ranges) {
+                let newSegs = [];
+                for (let [a, b] of segments) {
+                    if (b <= r.start || a >= r.end) {
+                        newSegs.push([a, b]);
+                    } else {
+                        if (a < r.start) newSegs.push([a, r.start]);
+                        if (b > r.end) newSegs.push([r.end, b]);
+                    }
+                }
+                segments = newSegs;
+                if (segments.length === 0) break;
+            }
+            return segments;
+        }
+
+        function applySafeEdit(delStart, delEnd, replacement = '', ranges) {
+            const ta = codeEditor;
+            const value = ta.value;
+            const segs = getEditableSegments(delStart, delEnd, ranges);
+            if (segs.length === 0) {
+                statusBar.textContent = '模板结构受保护，不可删除或修改';
+                return false;
+            }
+            let newValue = value;
+            for (let i = segs.length - 1; i >= 0; i--) {
+                const [a, b] = segs[i];
+                newValue = newValue.substring(0, a) + replacement + newValue.substring(b);
+            }
+            const cursorPos = segs[0][0];
+            ta.value = newValue;
+            ta.selectionStart = ta.selectionEnd = cursorPos + replacement.length;
+            ta.dispatchEvent(new Event('input', { bubbles: true }));
+            if (segs.length > 1) {
+                statusBar.textContent = '⚠️ 已处理部分内容（受保护骨架未动）';
+            }
+            return true;
+        }
+
+        function isPositionProtected(pos, ranges) {
+            return ranges.some(r => pos >= r.start && pos < r.end);
+        }
+
+        function isSelectionProtected(selStart, selEnd, ranges) {
+            return ranges.some(r =>
+                (selStart >= r.start && selStart < r.end) || (selEnd > r.start && selEnd <= r.end)
+            );
+        }
+
+        function findContentRanges(html, openRegex, closeStr) {
+            const ranges = [];
+            let idx = 0;
+            while (true) {
+                const openMatch = openRegex.exec(html);
+                if (!openMatch) break;
+                const startContent = openMatch.index + openMatch[0].length;
+                const closeIdx = html.indexOf(closeStr, startContent);
+                if (closeIdx === -1) break;
+                ranges.push({ start: startContent, end: closeIdx });
+                openRegex.lastIndex = closeIdx + closeStr.length;
+                idx = openRegex.lastIndex;
+            }
+            return ranges;
+        }
+
+        function updateHighlight() {
+            const code = codeEditor.value;
+            const styleRanges = findContentRanges(code, /<style[^>]*>/gi, '</style>');
+            const bodyRanges = findContentRanges(code, /<body[^>]*>/gi, '</body>');
+            const points = new Set([0, code.length]);
+            for (const r of styleRanges) { points.add(r.start); points.add(r.end); }
+            for (const r of bodyRanges) { points.add(r.start); points.add(r.end); }
+            const sortedPoints = [...points].sort((a, b) => a - b);
+            const segments = [];
+            for (let i = 0; i < sortedPoints.length - 1; i++) {
+                const segStart = sortedPoints[i];
+                const segEnd = sortedPoints[i + 1];
+                if (segStart === segEnd) continue;
+                const mid = (segStart + segEnd) / 2;
+                let type = null;
+                if (bodyRanges.some(r => mid > r.start && mid < r.end)) type = 'body';
+                if (styleRanges.some(r => mid > r.start && mid < r.end)) type = 'style';
+                segments.push({ text: code.substring(segStart, segEnd), type });
+            }
+            let result = '';
+            for (const seg of segments) {
+                const escaped = seg.text
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                const highlighted = escaped.replace(
+                    /&lt;(\/?)([a-zA-Z][a-zA-Z0-9]*)([^&]*)&gt;/g,
+                    (match, slash, tag, attrs) => {
+                        const color = TAG_COLORS[tag.toLowerCase()] || DEFAULT_TAG_COLOR;
+                        return `&lt;${slash}<span style="color:${color}">${tag}</span>${attrs}&gt;`;
+                    }
+                );
+                if (seg.type === 'style') {
+                    result += `<span class="highlight-style-bg">${highlighted}</span>`;
+                } else if (seg.type === 'body') {
+                    result += `<span class="highlight-body-bg">${highlighted}</span>`;
+                } else {
+                    result += highlighted;
+                }
+            }
+            highlightLayer.innerHTML = result;
+        }
+
+        codeEditor.addEventListener('scroll', () => {
+            highlightLayer.scrollTop = codeEditor.scrollTop;
+            highlightLayer.scrollLeft = codeEditor.scrollLeft;
+        });
+
+        function computeIndentInfo(lines) {
+            const voidElements = new Set([
+                'br','hr','img','input','meta','link','area','base','col','embed','source','track','wbr'
+            ]);
+            let depth = 0;
+            const levels = [];
+            const endDepths = [];
+            const tagPattern = /<\/?([a-zA-Z0-9]+)[^>]*\/?>/g;
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed === '') {
+                    levels.push(depth);
+                    endDepths.push(depth);
+                    continue;
+                }
+                let lineIndent;
+                if (trimmed.startsWith('</')) {
+                    lineIndent = Math.max(0, depth - 1);
+                } else {
+                    lineIndent = depth;
+                }
+                levels.push(lineIndent);
+                let match;
+                tagPattern.lastIndex = 0;
+                while ((match = tagPattern.exec(line)) !== null) {
+                    const fullTag = match[0];
+                    const tagName = match[1].toLowerCase();
+                    const isClosing = fullTag.startsWith('</');
+                    const isSelfClosing = fullTag.endsWith('/>') || voidElements.has(tagName);
+                    if (isClosing) {
+                        depth = Math.max(0, depth - 1);
+                    } else if (!isSelfClosing) {
+                        depth++;
+                    }
+                }
+                endDepths.push(depth);
+            }
+            return { levels, endDepths };
+        }
+
+        function getNewLineIndent(cursorPos) {
+            const value = codeEditor.value;
+            const lines = value.split('\n');
+            const beforeCursor = value.substring(0, cursorPos);
+            const currentLineIndex = beforeCursor.split('\n').length - 1;
+            const { endDepths } = computeIndentInfo(lines);
+            const newLevel = endDepths[currentLineIndex] || 0;
+            return '    '.repeat(newLevel);
+        }
+
+        function autoIndent() {
+            const ta = codeEditor;
+            const originalValue = ta.value;
+            const lines = originalValue.split('\n');
+            const { levels } = computeIndentInfo(lines);
+            let changed = false;
+            const newLines = lines.map((line, i) => {
+                if (line.trim() === '') {
+                    if (line !== '') { changed = true; return ''; }
+                    return line;
+                }
+                const trimmed = line.replace(/^[ \t]*/, '');
+                const newIndent = '    '.repeat(levels[i]);
+                if (line !== newIndent + trimmed) {
+                    changed = true;
+                    return newIndent + trimmed;
+                }
+                return line;
+            });
+            if (!changed) return;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const newValue = newLines.join('\n');
+            function getLineInfo(pos, text) {
+                if (pos === 0) return { line: 0, col: 0 };
+                const before = text.substring(0, pos);
+                const line = before.split('\n').length - 1;
+                const lastNewline = before.lastIndexOf('\n');
+                const col = lastNewline === -1 ? pos : pos - lastNewline - 1;
+                return { line, col };
+            }
+            function getLineStartIndex(text, lineNum) {
+                let count = 0;
+                for (let i = 0; i < text.length; i++) {
+                    if (count === lineNum) return i;
+                    if (text[i] === '\n') count++;
+                }
+                return text.length;
+            }
+            const oldInfoStart = getLineInfo(start, originalValue);
+            const oldInfoEnd = getLineInfo(end, originalValue);
+            function calcNewCol(oldLine, oldCol, newLine) {
+                if (oldLine.trim() === '' || newLine.trim() === '') return 0;
+                const oldIndent = oldLine.match(/^[ \t]*/)[0].length;
+                const newIndent = newLine.match(/^[ \t]*/)[0].length;
+                if (oldCol <= oldIndent) return newIndent;
+                return newIndent + (oldCol - oldIndent);
+            }
+            const newLineStart = newLines[oldInfoStart.line] || '';
+            const newStart = getLineStartIndex(newValue, oldInfoStart.line) + calcNewCol(lines[oldInfoStart.line], oldInfoStart.col, newLineStart);
+            let newEnd = newStart;
+            if (end !== start) {
+                const newLineEnd = newLines[oldInfoEnd.line] || '';
+                newEnd = getLineStartIndex(newValue, oldInfoEnd.line) + calcNewCol(lines[oldInfoEnd.line], oldInfoEnd.col, newLineEnd);
+            }
+            formattingInProgress = true;
+            ta.value = newValue;
+            updateHighlight();
+            updatePreview();
+            if (ws && ws.readyState === WebSocket.OPEN && groupFullName) {
+                ws.send(JSON.stringify({ type: 'codeUpdate', code: newValue }));
+            }
+            ta.selectionStart = Math.min(newStart, newValue.length);
+            ta.selectionEnd = Math.min(newEnd, newValue.length);
+            formattingInProgress = false;
+        }
+
+        function formatCSSContent(css, baseIndent) {
+            if (!css.trim()) return '';
+            let compressed = css
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\s+/g, ' ')
+                .replace(/\s*([{};])\s*/g, '$1')
+                .replace(/;\}/g, '}')
+                .trim();
+            if (!compressed) return '';
+            let result = '';
+            let level = baseIndent;
+            for (let i = 0; i < compressed.length; i++) {
+                const ch = compressed[i];
+                if (ch === '{') {
+                    result += ' {\n' + '    '.repeat(level + 1);
+                    level++;
+                } else if (ch === '}') {
+                    level--;
+                    result += '\n' + '    '.repeat(level) + '}';
+                    if (i + 1 < compressed.length && compressed[i + 1] !== '}') {
+                        result += '\n' + '    '.repeat(level);
+                    }
+                } else if (ch === ';') {
+                    result += ';\n' + '    '.repeat(level);
+                } else {
+                    result += ch;
+                }
+            }
+            const lines = result.split('\n').map(line => line.trimEnd());
+            result = lines.join('\n');
+            return '\n' + result;
+        }
+
+        function fullFormat(html) {
+            const voidElements = new Set([
+                'br','hr','img','input','meta','link','area','base','col','embed','source','track','wbr'
+            ]);
+            const regex = /(<!\[?[a-zA-Z][^>]*>)|(< !--[\s\S ]*?- ->)|(<\/?[a-zA-Z0-9]+[^>]*\/?>)|([^<]+)/g;
+            let out = '';
+            let indent = 0;
+            let match;
+            let lastWasNewline = false;
+            let styleContent = null;
+            while ((match = regex.exec(html)) !== null) {
+                const decl = match[1];
+                const comment = match[2];
+                const tag = match[3];
+                const text = match[4];
+                if (decl) {
+                    if (lastWasNewline || out === '') {
+                        out += '    '.repeat(indent) + decl;
+                    } else {
+                        out += '\n' + '    '.repeat(indent) + decl;
+                    }
+                    lastWasNewline = false;
+                    continue;
+                }
+                if (comment) {
+                    if (lastWasNewline || out === '') {
+                        out += '    '.repeat(indent) + comment;
+                    } else {
+                        out += '\n' + '    '.repeat(indent) + comment;
+                    }
+                    lastWasNewline = false;
+                    continue;
+                }
+                if (tag) {
+                    const tagNameMatch = /<\/?([a-zA-Z0-9]+)/.exec(tag);
+                    const tagName = tagNameMatch ? tagNameMatch[1].toLowerCase() : '';
+                    const isClosing = tag.startsWith('</');
+                    const isSelfClosing = tag.endsWith('/>') || voidElements.has(tagName);
+                    if (isClosing && tagName === 'style' && styleContent !== null) {
+                        const formattedCSS = formatCSSContent(styleContent, indent);
+                        out += formattedCSS;
+                        styleContent = null;
+                        indent = Math.max(0, indent - 1);
+                        out += '\n' + '    '.repeat(indent) + tag;
+                        lastWasNewline = true;
+                        continue;
+                    }
+                    if (isClosing) {
+                        indent = Math.max(0, indent - 1);
+                        out += '\n' + '    '.repeat(indent) + tag;
+                    } else if (isSelfClosing) {
+                        out += '\n' + '    '.repeat(indent) + tag;
+                    } else {
+                        out += '\n' + '    '.repeat(indent) + tag;
+                        indent++;
+                    }
+                    lastWasNewline = true;
+                    if (!isClosing && !isSelfClosing && tagName === 'style') {
+                        styleContent = '';
+                    }
+                    continue;
+                }
+                if (text) {
+                    if (styleContent !== null) {
+                        styleContent += text;
+                        continue;
+                    }
+                    const trimmed = text.trim();
+                    if (trimmed) {
+                        if (!lastWasNewline && out !== '') {
+                            out += ' ' + trimmed;
+                        } else {
+                            out += '\n' + '    '.repeat(indent) + trimmed;
+                        }
+                        lastWasNewline = false;
+                    }
+                }
+            }
+            return out.trim();
+        }
+
+        function fullFormatCode() {
+            const original = codeEditor.value;
+            const formatted = fullFormat(original);
+            if (formatted === original) return;
+            pushHistory(original);
+            formattingInProgress = true;
+            codeEditor.value = formatted;
+            updateHighlight();
+            updatePreview();
+            if (ws && ws.readyState === WebSocket.OPEN && groupFullName) {
+                ws.send(JSON.stringify({ type: 'codeUpdate', code: formatted }));
+            }
+            codeEditor.selectionStart = 0;
+            codeEditor.selectionEnd = 0;
+            formattingInProgress = false;
+            statusBar.textContent = '代码已格式化 (F3)';
+        }
+
+        codeEditor.addEventListener('keydown', function (e) {
+            const ta = this;
+            const selStart = ta.selectionStart;
+            const selEnd = ta.selectionEnd;
+            const value = ta.value;
+            const ranges = getCurrentProtectedRanges(value);
+
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+                e.preventDefault();
+                undo();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && ((e.key === 'y' || e.key === 'Y') || (e.shiftKey && (e.key === 'z' || e.key === 'Z')))) {
+                e.preventDefault();
+                redo();
+                return;
+            }
+
+            // Backspace
+            if (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                const oldVal = ta.value;
+                if (selStart !== selEnd) {
+                    applySafeEdit(selStart, selEnd, '', ranges);
+                } else if (selStart > 0) {
+                    applySafeEdit(selStart - 1, selStart, '', ranges);
+                }
+                if (ta.value !== oldVal) pushHistory(oldVal);
+                return;
+            }
+
+            // Delete
+            if (e.key === 'Delete' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                const oldVal = ta.value;
+                if (selStart !== selEnd) {
+                    applySafeEdit(selStart, selEnd, '', ranges);
+                } else if (selStart < value.length) {
+                    applySafeEdit(selStart, selStart + 1, '', ranges);
+                }
+                if (ta.value !== oldVal) pushHistory(oldVal);
+                return;
+            }
+
+            // Ctrl+X
+            if ((e.key === 'x' || e.key === 'X') && (e.ctrlKey || e.metaKey)) {
+                if (selStart !== selEnd) {
+                    e.preventDefault();
+                    const oldVal = ta.value;
+                    applySafeEdit(selStart, selEnd, '', ranges);
+                    if (ta.value !== oldVal) pushHistory(oldVal);
+                    return;
+                }
+            }
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (selStart !== selEnd) {
+                    e.preventDefault();
+                    const oldVal = ta.value;
+                    applySafeEdit(selStart, selEnd, e.key, ranges);
+                    if (ta.value !== oldVal) pushHistory(oldVal);
+                    return;
+                } else {
+                    if (isPositionProtected(selStart, ranges)) {
+                        e.preventDefault();
+                        statusBar.textContent = '模板结构受保护，不能在此输入';
+                        return;
+                    }
+                }
+            }
+
+            if (e.key === 'F3' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                fullFormatCode();
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (isSelectionProtected(selStart, selEnd, ranges)) {
+                    statusBar.textContent = ' 模板结构受保护，不能在此处换行';
+                    return;
+                }
+                const oldVal = ta.value;
+                const newIndent = getNewLineIndent(selStart);
+                const insertion = '\n' + newIndent;
+                const newValue = value.substring(0, selStart) + insertion + value.substring(selEnd);
+                ta.value = newValue;
+                ta.selectionStart = ta.selectionEnd = selStart + insertion.length;
+                ta.dispatchEvent(new Event('input', { bubbles: true }));
+                if (newValue !== oldVal) pushHistory(oldVal);
+                return;
+            }
+
+            // Tab
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const oldVal = ta.value;
+                if (!e.shiftKey) {
+                    const newVal = value.substring(0, selStart) + '    ' + value.substring(selEnd);
+                    ta.value = newVal;
+                    ta.selectionStart = ta.selectionEnd = selStart + 4;
+                } else {
+                    const lineStart = value.lastIndexOf('\n', selStart - 1) + 1;
+                    const line = value.substring(lineStart, selEnd);
+                    const trimmed = line.replace(/^( {1,4}|\t)/, '');
+                    const removed = line.length - trimmed.length;
+                    if (removed > 0) {
+                        ta.value = value.substring(0, lineStart) + trimmed + value.substring(selEnd);
+                        ta.selectionStart = ta.selectionEnd = selStart - removed;
+                    }
+                }
+                ta.dispatchEvent(new Event('input', { bubbles: true }));
+                if (ta.value !== oldVal) pushHistory(oldVal);
+                return;
+            }
+
+            // 括号/引号自动补全
+            const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };
+            const closeChars = Object.values(pairs);
+            if (e.key in pairs) {
+                e.preventDefault();
+                const oldVal = ta.value;
+                const open = e.key;
+                const close = pairs[open];
+                const selected = value.substring(selStart, selEnd);
+                if (selected) {
+                    const newVal = value.substring(0, selStart) + open + selected + close + value.substring(selEnd);
+                    ta.value = newVal;
+                    ta.selectionStart = selStart + 1;
+                    ta.selectionEnd = selStart + 1 + selected.length;
+                } else {
+                    const newVal = value.substring(0, selStart) + open + close + value.substring(selEnd);
+                    ta.value = newVal;
+                    ta.selectionStart = ta.selectionEnd = selStart + 1;
+                }
+                ta.dispatchEvent(new Event('input', { bubbles: true }));
+                if (ta.value !== oldVal) pushHistory(oldVal);
+                autoIndent();
+                return;
+            }
+            if (closeChars.includes(e.key)) {
+                if (selStart === selEnd && value[selStart] === e.key) {
+                    e.preventDefault();
+                    ta.selectionStart = ta.selectionEnd = selStart + 1;
+                }
+            }
+        });
+
+        codeEditor.addEventListener('cut', function (e) {
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            if (start === end) return;
+            const ranges = getCurrentProtectedRanges(this.value);
+            const segs = getEditableSegments(start, end, ranges);
+            if (segs.length === 0) {
+                e.preventDefault();
+                statusBar.textContent = ' 模板结构受保护，不能剪切';
+                return;
+            }
+            e.preventDefault();
+            const oldVal = this.value;
+            applySafeEdit(start, end, '', ranges);
+            if (this.value !== oldVal) pushHistory(oldVal);
+        });
+
+        codeEditor.addEventListener('paste', function (e) {
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            if (start === end) return;
+            e.preventDefault();
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const pastedText = clipboardData ? clipboardData.getData('text/plain') : '';
+            const ranges = getCurrentProtectedRanges(this.value);
+            // 粘贴覆盖选区也走 applySafeEdit 以保护骨架
+            const oldVal = this.value;
+            applySafeEdit(start, end, pastedText, ranges);
+            if (this.value !== oldVal) pushHistory(oldVal);
+        });
+
+        function updateGroupSelect() {
+            const className = classSelect.value;
+            groupSelect.innerHTML = '';
+            if (className && classData[className]) {
+                classData[className].forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group;
+                    option.textContent = group;
+                    groupSelect.appendChild(option);
+                });
+            } else {
+                groupSelect.innerHTML = '<option value="">请先选择班级</option>';
+            }
+        }
+        classSelect.addEventListener('change', updateGroupSelect);
+
+        function requestClassList() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'getClassList' }));
+            }
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => {
+                statusBar.textContent = '已连接服务器';
+                requestClassList();
+            };
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                switch (msg.type) {
+                    case 'classList':
+                        classData = msg.classes;
+                        classSelect.innerHTML = '';
+                        for (const className of Object.keys(classData)) {
+                            const option = document.createElement('option');
+                            option.value = className;
+                            option.textContent = className;
+                            classSelect.appendChild(option);
+                        }
+                        if (Object.keys(classData).length > 0) {
+                            classSelect.selectedIndex = 0;
+                            updateGroupSelect();
+                        }
+                        break;
+                    case 'loginSuccess':
+                        groupFullName = msg.groupName;
+                        loginPanel.style.display = 'none';
+                        mainPanel.style.display = 'flex';
+                        currentGroupName.textContent = `${msg.groupName} - ${msg.studentName}`;
+                        onlineCount.textContent = msg.onlineCount;
+                        remoteChange = true;
+                        codeEditor.value = msg.code;
+                        remoteChange = false;
+                        initProtectedTags(msg.code);
+                        updateHighlight();
+                        updatePreview();
+                        statusBar.textContent = `已加入 ${msg.groupName}（${msg.studentName}）`;
+                        if (msg.isLeader) {
+                            saveServerBtn.disabled = false;
+                            saveServerBtn.textContent = '☁️ 发送到服务器';
+                        } else {
+                            saveServerBtn.disabled = true;
+                            saveServerBtn.textContent = '☁️ 发送到服务器（仅组长）';
+                        }
+                        clearHistory();
+                        break;
+                    case 'codeUpdate':
+                        remoteChange = true;
+                        codeEditor.value = msg.code;
+                        remoteChange = false;
+                        updateHighlight();
+                        updatePreview();
+                        statusBar.textContent = '代码已同步';
+                        clearHistory();
+                        break;
+                    case 'userCount':
+                        onlineCount.textContent = msg.count;
+                        break;
+                    case 'saveResult':
+                        alert(msg.message);
+                        break;
+                    case 'error':
+                        alert(msg.message);
+                        break;
+                }
+            };
+            ws.onclose = () => {
+                statusBar.textContent = '连接断开，5秒后重连...';
+                setTimeout(connectWebSocket, 5000);
+            };
+            ws.onerror = () => statusBar.textContent = '连接错误';
+        }
+
+        loginBtn.addEventListener('click', () => {
+            const className = classSelect.value;
+            const groupName = groupSelect.value;
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            if (!className || !groupName) { loginError.textContent = '请选择班级和组'; return; }
+            if (!username) { loginError.textContent = '请输入姓名'; return; }
+            if (!password) { loginError.textContent = '请输入密码'; return; }
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                loginError.textContent = '未连接，正在重连...';
+                connectWebSocket();
+                return;
+            }
+            ws.send(JSON.stringify({ type: 'login', className, groupName, username, password }));
+            loginError.textContent = '';
+        });
+
+        usernameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') passwordInput.focus();
+        });
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+
+        codeEditor.addEventListener('input', () => {
+            if (remoteChange || formattingInProgress) return;
+            updateHighlight();
+            updatePreview();
+            if (ws && ws.readyState === WebSocket.OPEN && groupFullName) {
+                ws.send(JSON.stringify({ type: 'codeUpdate', code: codeEditor.value }));
+            }
+        });
+
+        function updatePreview() {
+            const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            let code = codeEditor.value;
+            if (!code.trim()) {
+                code = '<p style="color:gray">预览将显示在这里</p>';
+            }
+            if (!/<base\b/i.test(code)) {
+                if (/<head[^>]*>/i.test(code)) {
+                    code = code.replace(/(<head[^>]*>)/i, '$1\n<base target="_blank">');
+                } else if (/<html[^>]*>/i.test(code)) {
+                    code = code.replace(/(<html[^>]*>)/i, '$1\n<head><base target="_blank"></head>');
+                } else {
+                    code = '<base target="_blank">\n' + code;
+                }
+            }
+            doc.open();
+            doc.write(code);
+            doc.close();
+        }
+
+        saveLocalBtn.addEventListener('click', () => {
+            const blob = new Blob([codeEditor.value], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${groupFullName}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            statusBar.textContent = '已下载到本地';
+        });
+
+        saveServerBtn.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN && groupFullName) {
+                ws.send(JSON.stringify({
+                    type: 'saveToServer',
+                    code: codeEditor.value
+                }));
+                statusBar.textContent = '正在发送到服务器...';
+            } else {
+                alert('未连接到服务器');
+            }
+        });
+
+        connectWebSocket();
+        updateHighlight();
+    </script>
+</body>
+</html>
